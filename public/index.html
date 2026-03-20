@@ -233,7 +233,7 @@ const cellName = (r, c) => colLetter(c) + (r + 1);
 const getCell  = (r, c) => tbody.querySelector(`td[data-r="${r}"][data-c="${c}"]`);
 
 // ── Save state ────────────────────────────────────────────
-let savedFilename = null; // null = no file chosen yet (Save As mode)
+let fileHandle = null; // FileSystemFileHandle once a file is chosen
 
 // ── Build grid ────────────────────────────────────────────
 function buildGrid() {
@@ -371,42 +371,57 @@ document.getElementById('btn-add-row').addEventListener('click', () => {
 });
 
 // ── Save ──────────────────────────────────────────────────
+function buildSavePayload() {
+  const headers = data[0].map((h, i) => h || colLetter(i));
+  const rows    = data.slice(1);
+  const structured = rows
+    .filter(row => row.some(cell => cell !== ''))
+    .map(row => {
+      const obj = {};
+      headers.forEach((h, i) => { obj[h] = row[i] || ''; });
+      return obj;
+    });
+  return JSON.stringify({ exported_at: new Date().toISOString(), rows: structured.length, data: structured }, null, 2);
+}
+
+async function saveToHandle(handle) {
+  const writable = await handle.createWritable();
+  await writable.write(buildSavePayload());
+  await writable.close();
+}
+
 document.getElementById('btn-save').addEventListener('click', async () => {
   if (editing) commitEdit();
 
-  // First save → prompt for filename (Save As); after that → save to same file
-  if (!savedFilename) {
-    const input = prompt('Save as (filename without .json):', 'my-prompts');
-    if (!input || !input.trim()) return; // cancelled
-    savedFilename = input.trim().replace(/\.json$/i, '') + '.json';
-    document.getElementById('btn-save').textContent = '\uD83D\uDCBE Save';
-  }
-
   const btn = document.getElementById('btn-save');
   const statusEl = document.getElementById('status-msg');
+
+  // No handle yet → open native Save As dialog (exactly like real Excel)
+  if (!fileHandle) {
+    try {
+      fileHandle = await window.showSaveFilePicker({
+        suggestedName: 'prompts.json',
+        types: [{ description: 'JSON file', accept: { 'application/json': ['.json'] } }]
+      });
+    } catch {
+      return; // user cancelled the dialog
+    }
+    btn.textContent = '\uD83D\uDCBE Save';
+  }
+
   btn.disabled = true;
   statusEl.textContent = 'Saving…';
   statusEl.className = '';
 
-  const headers = data[0].map((h, i) => h || colLetter(i));
-  const rows    = data.slice(1);
-
   try {
-    const res = await fetch('/save', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ data: rows, headers, filename: savedFilename })
-    });
-    const json = await res.json();
-    if (json.success) {
-      statusEl.textContent = `✓ Saved to ${json.file.split('/').pop()}`;
-      statusEl.className = 'ok';
-    } else {
-      throw new Error('Server error');
-    }
+    await saveToHandle(fileHandle);
+    statusEl.textContent = `✓ Saved to ${fileHandle.name}`;
+    statusEl.className = 'ok';
   } catch {
     statusEl.textContent = '✗ Save failed';
     statusEl.className = 'err';
+    fileHandle = null; // reset so next click re-opens the picker
+    btn.textContent = '\uD83D\uDCBE Save As';
   } finally {
     btn.disabled = false;
   }
