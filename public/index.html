@@ -27,10 +27,8 @@
   #btn-submit:hover { background: #1558b0; }
   #btn-submit:active { background: #0f3f8a; }
   #btn-submit:disabled { background: #a0b9e4; cursor: not-allowed; }
-  #app-icon { height: 28px; width: 28px; border-radius: 5px; object-fit: cover; flex-shrink: 0; }
-  #btn-add-row, #btn-remove-row { background: #fff; color: #3c4043; border: 1px solid #dadce0; padding: 0 10px; }
-  #btn-add-row:hover, #btn-remove-row:hover { background: #f1f3f4; }
-  #btn-remove-row:disabled { color: #bdbdbd; cursor: not-allowed; }
+  #btn-add-row { background: #fff; color: #3c4043; border: 1px solid #dadce0; }
+  #btn-add-row:hover { background: #f1f3f4; }
   #btn-save { background: #188038; color: #fff; font-weight: 500; box-shadow: 0 1px 3px rgba(24,128,56,.4); }
   #btn-save:hover { background: #0d652d; }
   #btn-save:active { background: #0a4d22; }
@@ -98,6 +96,23 @@
   }
   td.cell.header-cell input { background: #e8f0fe; font-weight: 600; color: #1a73e8; }
 
+  /* AI Status dropdown inside cell */
+  td.cell select.status-select {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    border: none; outline: none; padding: 0 4px;
+    font-size: 12px; font-family: inherit; cursor: pointer;
+    background: transparent; appearance: none; text-align: center;
+  }
+  td.cell.status-none   { background: #E2CFBC; color: #5f6368; }
+  td.cell.status-done   { background: #c8b8a8; color: #188038; font-weight: 500; }
+  td.cell.status-later  { background: #d4c0aa; color: #b06000; font-weight: 500; }
+
+  /* AI columns */
+  td.cell.ai-col { background: #E2CFBC; }
+  td.cell.ai-col input { background: #E2CFBC; }
+  th.col-header.ai-col { background: #D4BAA2; color: #5c3d1e; }
+  td.cell.header-cell.ai-col { background: #D4BAA2; color: #5c3d1e; }
+  td.cell.header-cell.ai-col input { background: #D4BAA2; color: #5c3d1e; }
 
   .col-header.highlight, .row-header.highlight { background: #e8f0fe; color: #1a73e8; }
   tr:hover .row-header { background: #f1f3f4; }
@@ -133,13 +148,11 @@
 
 <!-- Toolbar -->
 <div id="toolbar">
-  <img id="app-icon" src="icon.png" alt="ClaudeExcell" />
   <span class="title">ClaudeExcell</span>
   <button id="btn-open">&#128194; Open</button>
   <button id="btn-save">&#128190; Save As</button>
   <button id="btn-submit">&#9654; Send to Claude</button>
-  <button id="btn-remove-row">&#8722; Row</button>
-  <button id="btn-add-row">&#43; Row</button>
+  <button id="btn-add-row">+ Row</button>
   <span id="status-msg"></span>
 </div>
 
@@ -167,14 +180,19 @@
 
 <script>
 // ── Config ──────────────────────────────────────────────
-const COLS      = 8;
-const INIT_ROWS = 20;
+const COLS       = 10;
+const STATUS_COL = COLS - 2;   // 8  → "AI Status"
+const AI_NOTE_COL = COLS - 1;  // 9  → "AI Note"
+const STATUS_OPTIONS = ['None', 'Done', 'Do Later'];
+const INIT_ROWS  = 20;
+// Widths per column index (px); main cols wide so AI cols need scrolling
 const COL_WIDTHS = { 0: 280, 1: 340, 2: 240 };
 const DEFAULT_COL_WIDTH = 160;
 
 // Build the initial header row
 const _hdr = Array(COLS).fill('');
 _hdr[0] = 'Task'; _hdr[1] = 'Prompt'; _hdr[2] = '@Refrens';
+_hdr[STATUS_COL] = 'AI Status'; _hdr[AI_NOTE_COL] = 'AI Note';
 
 // ── State ────────────────────────────────────────────────
 // Row 0 is the header row (editable column names)
@@ -201,7 +219,11 @@ function applyCell(r, c, val) {
   data[r][c] = val;
   const td = getCell(r, c);
   if (!td) return;
-  td.textContent = val;
+  if (r > 0 && c === STATUS_COL) {
+    renderStatusCell(td, r, val);
+  } else {
+    td.textContent = val;
+  }
   if (selR === r && selC === c) formulaInput.value = val;
 }
 
@@ -258,7 +280,9 @@ function loadPersistedData() {
     if (!saved?.data || !Array.isArray(saved.data)) return false;
     // Expand ROWS if saved data has more
     while (data.length < saved.data.length) {
-      data.push(Array(COLS).fill(''));
+      const row = Array(COLS).fill('');
+      row[STATUS_COL] = 'None';
+      data.push(row);
       ROWS++;
     }
     saved.data.forEach((savedRow, r) => {
@@ -285,21 +309,28 @@ async function openFile() {
     const rows = Array.isArray(json.data) ? json.data : (Array.isArray(json) ? json : null);
     if (!rows) throw new Error('Unrecognised format');
 
-    const headers = json.data ? Object.keys(rows[0] || {}) : _hdr.filter(Boolean);
+    const headers = json.data ? Object.keys(rows[0] || {}) : DEFAULT_HEADERS;
 
-    // Reset data rows (keep header row)
+    // Reset data (keep header row)
     for (let r = 1; r < data.length; r++) data[r] = Array(COLS).fill('');
+    if (r > 1 && ROWS > rows.length + 1) { /* don't shrink visible rows */ }
 
     rows.forEach((rowObj, i) => {
       const r = i + 1;
-      if (r >= data.length) { data.push(Array(COLS).fill('')); ROWS++; }
+      if (r >= data.length) { const row = Array(COLS).fill(''); row[STATUS_COL] = 'None'; data.push(row); ROWS++; }
       headers.forEach((h, ci) => { if (ci < COLS) data[r][ci] = rowObj[h] ?? ''; });
     });
 
     // Re-render
     tbody.innerHTML = '';
     buildGrid();
-    renderAllCells();
+    for (let r = 0; r < ROWS; r++)
+      for (let c = 0; c < COLS; c++) {
+        if (r > 0 && c === STATUS_COL) {
+          if (!data[r][c]) data[r][c] = 'None';
+          renderStatusCell(getCell(r, c), r, data[r][c]);
+        } else { getCell(r, c).textContent = data[r][c]; }
+      }
     selectCell(0, 0, false);
     persistData();
     document.getElementById('status-msg').textContent = `✓ Opened ${rows.length} rows`;
@@ -322,7 +353,7 @@ function buildGrid() {
   hrow.appendChild(corner);
   for (let c = 0; c < COLS; c++) {
     const th = document.createElement('th');
-    th.className = 'col-header';
+    th.className = 'col-header' + (c === STATUS_COL || c === AI_NOTE_COL ? ' ai-col' : '');
     th.id = 'ch' + c;
     th.textContent = colLetter(c);
     const w = COL_WIDTHS[c] ?? DEFAULT_COL_WIDTH;
@@ -345,16 +376,52 @@ function appendRow(r) {
   tr.appendChild(rh);
   for (let c = 0; c < COLS; c++) {
     const td = document.createElement('td');
-    td.className = 'cell' + (r === 0 ? ' header-cell' : '');
+    const isAI = (c === STATUS_COL || c === AI_NOTE_COL);
+    td.className = 'cell' + (r === 0 ? ' header-cell' : '') + (isAI ? ' ai-col' : '');
     td.dataset.r = r; td.dataset.c = c;
     td.tabIndex = -1;
-    td.addEventListener('mousedown', () => selectCell(r, c, false));
-    td.addEventListener('dblclick', () => startEdit(r, c));
+
+    // AI Status column (data rows only) → dropdown
+    if (r > 0 && c === STATUS_COL) {
+      renderStatusCell(td, r, data[r][c] || 'None');
+    } else {
+      td.addEventListener('mousedown', () => selectCell(r, c, false));
+      td.addEventListener('dblclick', () => startEdit(r, c));
+    }
     tr.appendChild(td);
   }
   tbody.appendChild(tr);
 }
 
+function renderStatusCell(td, r, value) {
+  td.innerHTML = '';
+  const sel = document.createElement('select');
+  sel.className = 'status-select';
+  STATUS_OPTIONS.forEach(opt => {
+    const o = document.createElement('option');
+    o.value = opt; o.textContent = opt;
+    if (opt === value) o.selected = true;
+    sel.appendChild(o);
+  });
+  applyStatusClass(td, value);
+  sel.addEventListener('mousedown', e => e.stopPropagation());
+  sel.addEventListener('change', () => {
+    const oldVal = data[r][STATUS_COL];
+    const newVal = sel.value;
+    pushHistory(r, STATUS_COL, oldVal, newVal);
+    data[r][STATUS_COL] = newVal;
+    applyStatusClass(td, newVal);
+    persistData();
+  });
+  td.appendChild(sel);
+}
+
+function applyStatusClass(td, value) {
+  td.classList.remove('status-none', 'status-done', 'status-later');
+  if (value === 'Done')       td.classList.add('status-done');
+  else if (value === 'Do Later') td.classList.add('status-later');
+  else                        td.classList.add('status-none');
+}
 
 // ── Cell selection ────────────────────────────────────────
 function selectCell(r, c, keepEditing) {
@@ -446,22 +513,11 @@ formulaInput.addEventListener('keydown', (e) => {
 
 // ── Add row ───────────────────────────────────────────────
 document.getElementById('btn-add-row').addEventListener('click', () => {
-  data.push(Array(COLS).fill(''));
+  const row = Array(COLS).fill('');
+  row[STATUS_COL] = 'None';
+  data.push(row);
   ROWS++;
   appendRow(ROWS - 1);
-  persistData();
-});
-
-document.getElementById('btn-remove-row').addEventListener('click', () => {
-  if (ROWS <= 2) return; // always keep at least 1 data row
-  const r = selR > 0 ? selR : ROWS - 1; // remove selected row, or last if header selected
-  data.splice(r, 1);
-  ROWS--;
-  tbody.innerHTML = '';
-  buildGrid();
-  renderAllCells();
-  const newR = Math.min(r, ROWS - 1);
-  selectCell(newR > 0 ? newR : 1, selC, false);
   persistData();
 });
 
@@ -581,16 +637,19 @@ document.getElementById('btn-close-panel').addEventListener('click', () => {
   document.getElementById('response-panel').classList.remove('open');
 });
 
-function renderAllCells() {
-  for (let r = 0; r < ROWS; r++)
-    for (let c = 0; c < COLS; c++)
-      getCell(r, c).textContent = data[r][c];
-}
-
 // ── Init ──────────────────────────────────────────────────
 loadPersistedData();
 buildGrid();
-renderAllCells();
+for (let r = 0; r < ROWS; r++)
+  for (let c = 0; c < COLS; c++) {
+    if (r > 0 && c === STATUS_COL) {
+      if (!data[r][c]) data[r][c] = 'None';
+      renderStatusCell(getCell(r, c), r, data[r][c]);
+    } else {
+      getCell(r, c).textContent = data[r][c];
+    }
+  }
+
 selectCell(0, 0, false);
 </script>
 </body>
