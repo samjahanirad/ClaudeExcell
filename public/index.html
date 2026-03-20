@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Prompt Engineering Tool</title>
+<title>ClaudeExcell</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Google Sans', Arial, sans-serif; font-size: 13px; background: #fff; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
@@ -101,6 +101,17 @@
   }
   td.cell.header-cell input { background: #e8f0fe; font-weight: 600; color: #1a73e8; }
 
+  /* AI Status dropdown inside cell */
+  td.cell select.status-select {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    border: none; outline: none; padding: 0 4px;
+    font-size: 12px; font-family: inherit; cursor: pointer;
+    background: transparent; appearance: none; text-align: center;
+  }
+  td.cell.status-none   { background: #f8f9fa; color: #5f6368; }
+  td.cell.status-done   { background: #e6f4ea; color: #188038; font-weight: 500; }
+  td.cell.status-later  { background: #fef7e0; color: #b06000; font-weight: 500; }
+
   .col-header.highlight, .row-header.highlight { background: #e8f0fe; color: #1a73e8; }
   tr:hover .row-header { background: #f1f3f4; }
 
@@ -135,7 +146,7 @@
 
 <!-- Toolbar -->
 <div id="toolbar">
-  <span class="title">Prompt Engineering Tool</span>
+  <span class="title">ClaudeExcell</span>
   <input id="filename-input" type="text" placeholder="filename (optional)" />
   <button id="btn-add-row">+ Row</button>
   <button id="btn-save">&#128190; Save As</button>
@@ -167,7 +178,9 @@
 
 <script>
 // ── Config ──────────────────────────────────────────────
-const DEFAULT_HEADERS = ['@Task', '@Prompt', '@Refrens', '@Notes', '@Tags'];
+const DEFAULT_HEADERS = ['Task', 'Prompt', '@Refrens', 'AI Status', 'AI Note'];
+const STATUS_COL = 3;  // index of "AI Status" column in DEFAULT_HEADERS
+const STATUS_OPTIONS = ['None', 'Done', 'Do Later'];
 const INIT_ROWS = 20;
 const COLS = Math.max(DEFAULT_HEADERS.length, 8);
 
@@ -197,7 +210,12 @@ function pushHistory(r, c, oldVal, newVal) {
 function applyCell(r, c, val) {
   data[r][c] = val;
   const td = getCell(r, c);
-  if (td) td.textContent = val;
+  if (!td) return;
+  if (r > 0 && c === STATUS_COL) {
+    renderStatusCell(td, r, val);
+  } else {
+    td.textContent = val;
+  }
   if (selR === r && selC === c) formulaInput.value = val;
 }
 
@@ -269,11 +287,46 @@ function appendRow(r) {
     td.className = 'cell' + (r === 0 ? ' header-cell' : '');
     td.dataset.r = r; td.dataset.c = c;
     td.tabIndex = -1;
-    td.addEventListener('mousedown', () => selectCell(r, c, false));
-    td.addEventListener('dblclick', () => startEdit(r, c));
+
+    // AI Status column (data rows only) → dropdown
+    if (r > 0 && c === STATUS_COL) {
+      renderStatusCell(td, r, data[r][c] || 'None');
+    } else {
+      td.addEventListener('mousedown', () => selectCell(r, c, false));
+      td.addEventListener('dblclick', () => startEdit(r, c));
+    }
     tr.appendChild(td);
   }
   tbody.appendChild(tr);
+}
+
+function renderStatusCell(td, r, value) {
+  td.innerHTML = '';
+  const sel = document.createElement('select');
+  sel.className = 'status-select';
+  STATUS_OPTIONS.forEach(opt => {
+    const o = document.createElement('option');
+    o.value = opt; o.textContent = opt;
+    if (opt === value) o.selected = true;
+    sel.appendChild(o);
+  });
+  applyStatusClass(td, value);
+  sel.addEventListener('mousedown', e => e.stopPropagation());
+  sel.addEventListener('change', () => {
+    const oldVal = data[r][STATUS_COL];
+    const newVal = sel.value;
+    pushHistory(r, STATUS_COL, oldVal, newVal);
+    data[r][STATUS_COL] = newVal;
+    applyStatusClass(td, newVal);
+  });
+  td.appendChild(sel);
+}
+
+function applyStatusClass(td, value) {
+  td.classList.remove('status-none', 'status-done', 'status-later');
+  if (value === 'Done')       td.classList.add('status-done');
+  else if (value === 'Do Later') td.classList.add('status-later');
+  else                        td.classList.add('status-none');
 }
 
 // ── Cell selection ────────────────────────────────────────
@@ -365,7 +418,9 @@ formulaInput.addEventListener('keydown', (e) => {
 
 // ── Add row ───────────────────────────────────────────────
 document.getElementById('btn-add-row').addEventListener('click', () => {
-  data.push(Array(COLS).fill(''));
+  const row = Array(COLS).fill('');
+  row[STATUS_COL] = 'None';
+  data.push(row);
   ROWS++;
   appendRow(ROWS - 1);
 });
@@ -492,8 +547,14 @@ document.getElementById('btn-close-panel').addEventListener('click', () => {
 // ── Init ──────────────────────────────────────────────────
 buildGrid();
 for (let r = 0; r < ROWS; r++)
-  for (let c = 0; c < COLS; c++)
-    getCell(r, c).textContent = data[r][c];
+  for (let c = 0; c < COLS; c++) {
+    if (r > 0 && c === STATUS_COL) {
+      if (!data[r][c]) data[r][c] = 'None';
+      renderStatusCell(getCell(r, c), r, data[r][c]);
+    } else {
+      getCell(r, c).textContent = data[r][c];
+    }
+  }
 
 selectCell(0, 0, false);
 </script>
