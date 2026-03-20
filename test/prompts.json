@@ -1,0 +1,46 @@
+{
+  "exported_at": "2026-03-20T23:43:31.196Z",
+  "rows": 5,
+  "data": [
+    {
+      "Task": "Fix formula-bar",
+      "Prompt": "there is functional bug on <input id=\"formula-input\" type=\"text\"> when I type on it , the text doesn't apply on the cell, fix this big",
+      "@Refrens": "",
+      "D": "", "E": "", "F": "", "G": "", "H": "",
+      "AI Status": "Done",
+      "AI Note": "Added formulaInput 'input' event to sync typed value into active cell input"
+    },
+    {
+      "Task": "Add save button shortcut",
+      "Prompt": "Make a save button short for mac and windows (in mac it must be command+s)",
+      "@Refrens": "",
+      "D": "", "E": "", "F": "", "G": "", "H": "",
+      "AI Status": "Done",
+      "AI Note": "Cmd+S / Ctrl+S triggers Save, handled before the editing guard"
+    },
+    {
+      "Task": "Add a setting button in tool bar",
+      "Prompt": "Add a setting button in tool bar ",
+      "@Refrens": "",
+      "D": "", "E": "", "F": "", "G": "", "H": "",
+      "AI Status": "Done",
+      "AI Note": "⚙ button added to toolbar, opens a popover panel on click"
+    },
+    {
+      "Task": "Add darkmode and low-light ",
+      "Prompt": "Add darkmode and low-light mode in setting button",
+      "@Refrens": "",
+      "D": "", "E": "", "F": "", "G": "", "H": "",
+      "AI Status": "Done",
+      "AI Note": "CSS variables + body.dark / body.lowlight classes, toggles persisted in localStorage"
+    },
+    {
+      "Task": "Add a Save button",
+      "Prompt": "Add a Save button before Save As button",
+      "@Refrens": "",
+      "D": "", "E": "", "F": "", "G": "", "H": "",
+      "AI Status": "Done",
+      "AI Note": "Separate Save (reuses handle) and Save As (always opens picker) buttons added"
+    }
+  ]
+}

@@ -4,17 +4,74 @@
 <meta charset="UTF-8">
 <title>ClaudeExcell</title>
 <style>
+  /* ── Themes ── */
+  :root {
+    --bg: #fff;
+    --bg-surface: #f8f9fa;
+    --border: #e0e0e0;
+    --text: #202124;
+    --text-muted: #5f6368;
+    --bg-header-cell: #e8f0fe;
+    --text-header-cell: #1a73e8;
+    --ai-col: #E2CFBC;
+    --ai-header: #D4BAA2;
+    --ai-text: #5c3d1e;
+    --status-done-bg: #c8b8a8;
+    --status-done-text: #188038;
+    --status-later-bg: #d4c0aa;
+    --status-later-text: #b06000;
+    --status-none-bg: #E2CFBC;
+  }
+  body.dark {
+    --bg: #1e1e1e;
+    --bg-surface: #252526;
+    --border: #3c3c3c;
+    --text: #e8eaed;
+    --text-muted: #9aa0a6;
+    --bg-header-cell: #1a2740;
+    --text-header-cell: #8ab4f8;
+    --ai-col: #3a2e1e;
+    --ai-header: #4a3a24;
+    --ai-text: #c9a87c;
+    --status-done-bg: #1e3a1e;
+    --status-done-text: #4caf50;
+    --status-later-bg: #3a2e10;
+    --status-later-text: #ffa726;
+    --status-none-bg: #3a2e1e;
+  }
+  body.lowlight {
+    --bg: #f5f0e8;
+    --bg-surface: #ede8df;
+    --border: #d4cfc6;
+    --text: #3d3830;
+    --text-muted: #7a7268;
+    --bg-header-cell: #ddd8e8;
+    --text-header-cell: #5060a0;
+    --ai-col: #e8d8c0;
+    --ai-header: #d8c8b0;
+    --ai-text: #5c4030;
+    --status-done-bg: #d0c4b0;
+    --status-done-text: #3a7a3a;
+    --status-later-bg: #d8c8a8;
+    --status-later-text: #8a6000;
+    --status-none-bg: #e8d8c0;
+  }
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Google Sans', Arial, sans-serif; font-size: 13px; background: #fff; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
+  body {
+    font-family: 'Google Sans', Arial, sans-serif; font-size: 13px;
+    background: var(--bg); color: var(--text);
+    overflow: hidden; height: 100vh; display: flex; flex-direction: column;
+  }
 
   /* ── Toolbar ── */
   #toolbar {
     display: flex; align-items: center; gap: 8px;
-    padding: 6px 10px; background: #f8f9fa;
-    border-bottom: 1px solid #e0e0e0; flex-shrink: 0;
+    padding: 6px 10px; background: var(--bg-surface);
+    border-bottom: 1px solid var(--border); flex-shrink: 0; position: relative;
   }
   #toolbar span.title {
-    font-size: 14px; font-weight: 500; color: #202124; margin-right: 8px;
+    font-size: 14px; font-weight: 500; color: var(--text); margin-right: 8px;
   }
   #toolbar button {
     height: 28px; padding: 0 14px; border: none; border-radius: 4px;
@@ -24,126 +81,144 @@
     background: #C15F3C; color: #fff; font-weight: 500;
     box-shadow: 0 1px 3px rgba(193,95,60,.4);
   }
-  #btn-submit:hover { background: #a34e30; }
+  #btn-submit:hover  { background: #a34e30; }
   #btn-submit:active { background: #863f27; }
   #btn-submit:disabled { background: #d9a892; cursor: not-allowed; }
   #app-icon { height: 28px; width: 28px; border-radius: 5px; object-fit: cover; flex-shrink: 0; }
-  #btn-add-row, #btn-remove-row { background: #fff; color: #3c4043; border: 1px solid #dadce0; padding: 0 10px; }
-  #btn-add-row:hover, #btn-remove-row:hover { background: #f1f3f4; }
-  #btn-save { background: #fff; color: #3c4043; border: 1px solid #dadce0; }
-  #btn-save:hover { background: #f1f3f4; }
-  #btn-save:disabled { background: #f1f3f4; color: #aaa; cursor: not-allowed; }
-  #btn-new  { background: #fff; color: #3c4043; border: 1px solid #dadce0; }
-  #btn-new:hover  { background: #f1f3f4; }
-  #btn-open { background: #fff; color: #3c4043; border: 1px solid #dadce0; }
-  #btn-open:hover { background: #f1f3f4; }
-  #status-msg { font-size: 12px; color: #5f6368; margin-left: 4px; }
+  #btn-add-row, #btn-remove-row {
+    background: var(--bg); color: var(--text); border: 1px solid var(--border); padding: 0 10px;
+  }
+  #btn-add-row:hover, #btn-remove-row:hover { background: var(--bg-surface); }
+  #btn-save, #btn-save-as, #btn-new, #btn-open {
+    background: var(--bg); color: var(--text); border: 1px solid var(--border);
+  }
+  #btn-save:hover, #btn-save-as:hover, #btn-new:hover, #btn-open:hover { background: var(--bg-surface); }
+  #btn-save:disabled, #btn-save-as:disabled { opacity: .5; cursor: not-allowed; }
+  #btn-settings {
+    background: var(--bg); color: var(--text); border: 1px solid var(--border);
+    padding: 0 10px; font-size: 15px;
+  }
+  #btn-settings:hover { background: var(--bg-surface); }
+  #status-msg { font-size: 12px; color: var(--text-muted); margin-left: 4px; }
   #status-msg.ok  { color: #188038; }
   #status-msg.err { color: #d93025; }
 
+  /* ── Settings panel ── */
+  #settings-panel {
+    display: none; position: absolute; top: calc(100% + 4px); left: 10px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,.15);
+    padding: 12px 16px; z-index: 20; min-width: 190px;
+  }
+  #settings-panel.open { display: block; }
+  #settings-panel h3 {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    color: var(--text-muted); margin-bottom: 10px; letter-spacing: .05em;
+  }
+  .setting-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 5px 0; gap: 24px;
+  }
+  .setting-row label { font-size: 13px; color: var(--text); cursor: pointer; user-select: none; }
+  .toggle { position: relative; width: 34px; height: 18px; flex-shrink: 0; }
+  .toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+  .toggle-slider {
+    position: absolute; inset: 0; background: var(--border);
+    border-radius: 18px; cursor: pointer; transition: background .2s;
+  }
+  .toggle-slider:before {
+    content: ''; position: absolute; width: 12px; height: 12px;
+    left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: transform .2s;
+  }
+  .toggle input:checked + .toggle-slider { background: #1a73e8; }
+  .toggle input:checked + .toggle-slider:before { transform: translateX(16px); }
+
   /* ── Formula bar ── */
   #formula-bar {
-    display: flex; align-items: center; border-bottom: 1px solid #e0e0e0;
-    padding: 0; height: 30px; flex-shrink: 0; background: #fff;
+    display: flex; align-items: center; border-bottom: 1px solid var(--border);
+    padding: 0; height: 30px; flex-shrink: 0; background: var(--bg);
   }
   #cell-ref {
     width: 60px; min-width: 60px; height: 100%; text-align: center;
-    border: none; border-right: 1px solid #e0e0e0; font-size: 13px;
-    font-family: inherit; color: #202124; outline: none; background: #fff;
+    border: none; border-right: 1px solid var(--border); font-size: 13px;
+    font-family: inherit; color: var(--text); outline: none; background: var(--bg);
   }
   #formula-icon {
-    padding: 0 8px; color: #5f6368; font-style: italic; font-size: 13px;
-    border-right: 1px solid #e0e0e0; height: 100%; display: flex; align-items: center;
+    padding: 0 8px; color: var(--text-muted); font-style: italic; font-size: 13px;
+    border-right: 1px solid var(--border); height: 100%; display: flex; align-items: center;
   }
   #formula-input {
     flex: 1; height: 100%; border: none; padding: 0 8px; font-size: 13px;
-    font-family: inherit; color: #202124; outline: none;
+    font-family: inherit; color: var(--text); outline: none; background: var(--bg);
   }
 
   /* ── Grid ── */
   #grid-container { flex: 1; overflow: auto; position: relative; }
-
   table { border-collapse: collapse; table-layout: fixed; }
 
   .col-header, .row-header {
-    background: #f8f9fa; color: #444; font-size: 12px; font-weight: 400;
-    text-align: center; border: 1px solid #e0e0e0;
+    background: var(--bg-surface); color: var(--text-muted); font-size: 12px; font-weight: 400;
+    text-align: center; border: 1px solid var(--border);
     position: sticky; z-index: 2; user-select: none;
   }
   .col-header { top: 0; height: 22px; min-width: 160px; padding: 0 4px; }
   .row-header { left: 0; width: 46px; min-width: 46px; z-index: 3; }
   .corner {
     position: sticky; top: 0; left: 0; z-index: 4;
-    background: #f8f9fa; border: 1px solid #e0e0e0;
+    background: var(--bg-surface); border: 1px solid var(--border);
     width: 46px; height: 22px;
   }
 
   td.cell {
-    border: 1px solid #e0e0e0; height: 21px; min-width: 160px;
-    padding: 0 4px; color: #202124;
+    border: 1px solid var(--border); height: 21px; min-width: 160px;
+    padding: 0 4px; color: var(--text); background: var(--bg);
     overflow: hidden; white-space: nowrap;
     cursor: cell; outline: none; vertical-align: middle; position: relative;
   }
-  td.cell.selected {
-    outline: 2px solid #1a73e8; outline-offset: -2px; z-index: 1;
-  }
+  td.cell.selected { outline: 2px solid #1a73e8; outline-offset: -2px; z-index: 1; }
   td.cell input {
     position: absolute; inset: 0; border: none; outline: none; padding: 0 4px;
-    font-size: 13px; font-family: inherit; color: #202124; background: #fff;
+    font-size: 13px; font-family: inherit; color: var(--text); background: var(--bg);
     width: 100%; height: 100%;
   }
-  /* Header row (row 0) styling */
-  td.cell.header-cell {
-    background: #e8f0fe; font-weight: 600; color: #1a73e8;
-  }
-  td.cell.header-cell input { background: #e8f0fe; font-weight: 600; color: #1a73e8; }
+  td.cell.header-cell { background: var(--bg-header-cell); font-weight: 600; color: var(--text-header-cell); }
+  td.cell.header-cell input { background: var(--bg-header-cell); font-weight: 600; color: var(--text-header-cell); }
 
-  /* AI Status dropdown inside cell */
   td.cell select.status-select {
     position: absolute; inset: 0; width: 100%; height: 100%;
     border: none; outline: none; padding: 0 4px;
     font-size: 12px; font-family: inherit; cursor: pointer;
-    background: transparent; appearance: none; text-align: center;
+    background: transparent; appearance: none; text-align: center; color: inherit;
   }
-  td.cell.status-none   { background: #E2CFBC; color: #5f6368; }
-  td.cell.status-done   { background: #c8b8a8; color: #188038; font-weight: 500; }
-  td.cell.status-later  { background: #d4c0aa; color: #b06000; font-weight: 500; }
+  td.cell.status-none  { background: var(--status-none-bg);  color: var(--text-muted); }
+  td.cell.status-done  { background: var(--status-done-bg);  color: var(--status-done-text);  font-weight: 500; }
+  td.cell.status-later { background: var(--status-later-bg); color: var(--status-later-text); font-weight: 500; }
 
-  /* AI columns */
-  td.cell.ai-col { background: #E2CFBC; }
-  td.cell.ai-col input { background: #E2CFBC; }
-  th.col-header.ai-col { background: #D4BAA2; color: #5c3d1e; }
-  td.cell.header-cell.ai-col { background: #D4BAA2; color: #5c3d1e; }
-  td.cell.header-cell.ai-col input { background: #D4BAA2; color: #5c3d1e; }
+  td.cell.ai-col { background: var(--ai-col); }
+  td.cell.ai-col input { background: var(--ai-col); }
+  th.col-header.ai-col { background: var(--ai-header); color: var(--ai-text); }
+  td.cell.header-cell.ai-col { background: var(--ai-header); color: var(--ai-text); }
+  td.cell.header-cell.ai-col input { background: var(--ai-header); color: var(--ai-text); }
 
   .col-header.highlight, .row-header.highlight { background: #e8f0fe; color: #1a73e8; }
-  tr:hover .row-header { background: #f1f3f4; }
+  tr:hover .row-header { filter: brightness(.97); }
 
   /* ── Response panel ── */
   #response-panel {
     display: none; position: fixed; right: 0; top: 0; bottom: 0;
-    width: 380px; background: #fff; border-left: 1px solid #e0e0e0;
+    width: 380px; background: var(--bg); border-left: 1px solid var(--border);
     flex-direction: column; z-index: 10; box-shadow: -2px 0 8px rgba(0,0,0,.1);
   }
   #response-panel.open { display: flex; }
   #response-header {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 10px 14px; border-bottom: 1px solid #e0e0e0;
-    background: #f8f9fa; flex-shrink: 0;
+    padding: 10px 14px; border-bottom: 1px solid var(--border);
+    background: var(--bg-surface); flex-shrink: 0;
   }
-  #response-header strong { font-size: 13px; color: #202124; }
-  #btn-close-panel {
-    background: none; border: none; cursor: pointer;
-    font-size: 18px; color: #5f6368; line-height: 1;
-  }
-  #response-body {
-    flex: 1; overflow-y: auto; padding: 14px;
-    font-size: 12px; line-height: 1.6; color: #202124; white-space: pre-wrap;
-  }
-  #response-file {
-    padding: 8px 14px; border-top: 1px solid #e0e0e0;
-    font-size: 11px; color: #5f6368; word-break: break-all; flex-shrink: 0;
-  }
+  #response-header strong { font-size: 13px; color: var(--text); }
+  #btn-close-panel { background: none; border: none; cursor: pointer; font-size: 18px; color: var(--text-muted); line-height: 1; }
+  #response-body { flex: 1; overflow-y: auto; padding: 14px; font-size: 12px; line-height: 1.6; color: var(--text); white-space: pre-wrap; }
+  #response-file { padding: 8px 14px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-muted); word-break: break-all; flex-shrink: 0; }
 </style>
 </head>
 <body>
@@ -154,11 +229,32 @@
   <span class="title">ClaudeExcell</span>
   <button id="btn-new">&#128196; New</button>
   <button id="btn-open">&#128194; Open</button>
-  <button id="btn-save">&#128190; Save As</button>
+  <button id="btn-save">&#128190; Save</button>
+  <button id="btn-save-as">&#8595; Save As</button>
+  <button id="btn-settings">&#9881;</button>
   <button id="btn-submit">&#9654; Send to Claude</button>
   <button id="btn-remove-row">&#8722; Row</button>
   <button id="btn-add-row">&#43; Row</button>
   <span id="status-msg"></span>
+</div>
+
+<!-- Settings panel -->
+<div id="settings-panel">
+  <h3>Display</h3>
+  <div class="setting-row">
+    <label for="toggle-dark">Dark Mode</label>
+    <label class="toggle">
+      <input type="checkbox" id="toggle-dark">
+      <span class="toggle-slider"></span>
+    </label>
+  </div>
+  <div class="setting-row">
+    <label for="toggle-lowlight">Low-light</label>
+    <label class="toggle">
+      <input type="checkbox" id="toggle-lowlight">
+      <span class="toggle-slider"></span>
+    </label>
+  </div>
 </div>
 
 <!-- Formula bar -->
@@ -185,22 +281,19 @@
 
 <script>
 // ── Config ──────────────────────────────────────────────
-const COLS       = 10;
-const STATUS_COL = COLS - 2;   // 8  → "AI Status"
-const AI_NOTE_COL = COLS - 1;  // 9  → "AI Note"
+const COLS        = 10;
+const STATUS_COL  = COLS - 2;   // 8 → "AI Status"
+const AI_NOTE_COL = COLS - 1;   // 9 → "AI Note"
 const STATUS_OPTIONS = ['None', 'Done', 'Do Later'];
-const INIT_ROWS  = 2;
-// Widths per column index (px); main cols wide so AI cols need scrolling
-const COL_WIDTHS = { 0: 280, 1: 340, 2: 240 };
+const INIT_ROWS   = 2;
+const COL_WIDTHS  = { 0: 280, 1: 340, 2: 240 };
 const DEFAULT_COL_WIDTH = 160;
 
-// Build the initial header row
 const _hdr = Array(COLS).fill('');
 _hdr[0] = 'Task'; _hdr[1] = 'Prompt'; _hdr[2] = '@Refrens';
 _hdr[STATUS_COL] = 'AI Status'; _hdr[AI_NOTE_COL] = 'AI Note';
 
 // ── State ────────────────────────────────────────────────
-// Row 0 is the header row (editable column names)
 let ROWS = INIT_ROWS + 1;
 const data = Array.from({length: ROWS}, (_, r) =>
   r === 0 ? [..._hdr] : Array(COLS).fill('')
@@ -208,8 +301,8 @@ const data = Array.from({length: ROWS}, (_, r) =>
 let selR = 0, selC = 0;
 let editing = false;
 
-// ── History (undo/redo) ───────────────────────────────────
-const undoStack = [];   // [{r, c, oldVal, newVal}, ...]
+// ── History ───────────────────────────────────────────────
+const undoStack = [];
 const redoStack = [];
 const MAX_HISTORY = 200;
 
@@ -217,7 +310,7 @@ function pushHistory(r, c, oldVal, newVal) {
   if (oldVal === newVal) return;
   undoStack.push({r, c, oldVal, newVal});
   if (undoStack.length > MAX_HISTORY) undoStack.shift();
-  redoStack.length = 0; // new action clears redo
+  redoStack.length = 0;
 }
 
 function applyCell(r, c, val) {
@@ -249,14 +342,13 @@ function redoAction() {
 }
 
 // ── DOM refs ─────────────────────────────────────────────
-const tbody       = document.getElementById('tbody');
-const cellRefEl   = document.getElementById('cell-ref');
+const tbody        = document.getElementById('tbody');
+const cellRefEl    = document.getElementById('cell-ref');
 const formulaInput = document.getElementById('formula-input');
 
 // ── Helpers ───────────────────────────────────────────────
 const colLetter = i => {
-  let s = '';
-  let n = i;
+  let s = '', n = i;
   do { s = String.fromCharCode(65 + (n % 26)) + s; n = Math.floor(n / 26) - 1; } while (n >= 0);
   return s;
 };
@@ -264,7 +356,7 @@ const cellName = (r, c) => colLetter(c) + (r + 1);
 const getCell  = (r, c) => tbody.querySelector(`td[data-r="${r}"][data-c="${c}"]`);
 
 // ── Save state ────────────────────────────────────────────
-let fileHandle = null; // FileSystemFileHandle once a file is chosen
+let fileHandle = null;
 
 // ── LocalStorage persistence ──────────────────────────────
 const STORAGE_KEY = 'claudeexcell_data';
@@ -283,7 +375,6 @@ function loadPersistedData() {
     if (!raw) return false;
     const saved = JSON.parse(raw);
     if (!saved?.data || !Array.isArray(saved.data)) return false;
-    // Expand ROWS if saved data has more
     while (data.length < saved.data.length) {
       const row = Array(COLS).fill('');
       row[STATUS_COL] = 'None';
@@ -291,7 +382,7 @@ function loadPersistedData() {
       ROWS++;
     }
     saved.data.forEach((savedRow, r) => {
-      if (r === 0) return; // always use default _hdr, never restore headers from localStorage
+      if (r === 0) return;
       if (!data[r]) return;
       savedRow.forEach((val, c) => { if (c < COLS) data[r][c] = val ?? ''; });
     });
@@ -308,26 +399,21 @@ async function openFile() {
     });
     const file = await handle.getFile();
     text = await file.text();
-  } catch { return; } // cancelled
+  } catch { return; }
 
   try {
     const json = JSON.parse(text);
     const rows = Array.isArray(json.data) ? json.data : (Array.isArray(json) ? json : null);
     if (!rows) throw new Error('Unrecognised format');
+    const headers = json.data ? Object.keys(rows[0] || {}) : [];
 
-    const headers = json.data ? Object.keys(rows[0] || {}) : DEFAULT_HEADERS;
-
-    // Reset data (keep header row)
     for (let r = 1; r < data.length; r++) data[r] = Array(COLS).fill('');
-    if (r > 1 && ROWS > rows.length + 1) { /* don't shrink visible rows */ }
-
     rows.forEach((rowObj, i) => {
       const r = i + 1;
       if (r >= data.length) { const row = Array(COLS).fill(''); row[STATUS_COL] = 'None'; data.push(row); ROWS++; }
       headers.forEach((h, ci) => { if (ci < COLS) data[r][ci] = rowObj[h] ?? ''; });
     });
 
-    // Re-render
     tbody.innerHTML = '';
     buildGrid();
     for (let r = 0; r < ROWS; r++)
@@ -352,16 +438,12 @@ document.getElementById('btn-open').addEventListener('click', openFile);
 // ── New file ──────────────────────────────────────────────
 document.getElementById('btn-new').addEventListener('click', () => {
   if (!confirm('Create a new file? Unsaved changes will be lost.')) return;
-  // Reset data to defaults
   data.length = 0;
   ROWS = INIT_ROWS + 1;
   for (let r = 0; r < ROWS; r++)
     data.push(r === 0 ? [..._hdr] : Array(COLS).fill(''));
-  // Reset save handle and localStorage
   fileHandle = null;
-  document.getElementById('btn-save').textContent = '\uD83D\uDCBE Save As';
   localStorage.removeItem(STORAGE_KEY);
-  // Re-render
   tbody.innerHTML = '';
   buildGrid();
   renderAllCells();
@@ -372,7 +454,6 @@ document.getElementById('btn-new').addEventListener('click', () => {
 // ── Build grid ────────────────────────────────────────────
 function buildGrid() {
   tbody.innerHTML = '';
-  // Header row (column letters)
   const hrow = document.createElement('tr');
   const corner = document.createElement('th');
   corner.className = 'corner row-header';
@@ -387,10 +468,7 @@ function buildGrid() {
     hrow.appendChild(th);
   }
   tbody.appendChild(hrow);
-
-  for (let r = 0; r < ROWS; r++) {
-    appendRow(r);
-  }
+  for (let r = 0; r < ROWS; r++) appendRow(r);
 }
 
 function appendRow(r) {
@@ -406,8 +484,6 @@ function appendRow(r) {
     td.className = 'cell' + (r === 0 ? ' header-cell' : '') + (isAI ? ' ai-col' : '');
     td.dataset.r = r; td.dataset.c = c;
     td.tabIndex = -1;
-
-    // AI Status column (data rows only) → dropdown
     if (r > 0 && c === STATUS_COL) {
       renderStatusCell(td, r, data[r][c] || 'None');
     } else {
@@ -444,9 +520,9 @@ function renderStatusCell(td, r, value) {
 
 function applyStatusClass(td, value) {
   td.classList.remove('status-none', 'status-done', 'status-later');
-  if (value === 'Done')       td.classList.add('status-done');
+  if (value === 'Done')          td.classList.add('status-done');
   else if (value === 'Do Later') td.classList.add('status-later');
-  else                        td.classList.add('status-none');
+  else                           td.classList.add('status-none');
 }
 
 // ── Cell selection ────────────────────────────────────────
@@ -495,9 +571,9 @@ function commitEdit() {
 }
 
 function handleEditKey(e) {
-  if (e.key === 'Enter')      { commitEdit(); moveTo(selR+1, selC); }
-  else if (e.key === 'Tab')   { e.preventDefault(); commitEdit(); moveTo(selR, selC + (e.shiftKey ? -1 : 1)); }
-  else if (e.key === 'Escape'){ commitEdit(); }
+  if (e.key === 'Enter')          { commitEdit(); moveTo(selR+1, selC); }
+  else if (e.key === 'Tab')       { e.preventDefault(); commitEdit(); moveTo(selR, selC + (e.shiftKey ? -1 : 1)); }
+  else if (e.key === 'Escape')    { commitEdit(); }
   else if (e.key === 'ArrowDown') { commitEdit(); moveTo(selR+1, selC); }
   else if (e.key === 'ArrowUp')   { commitEdit(); moveTo(selR-1, selC); }
 }
@@ -511,6 +587,9 @@ function moveTo(r, c) {
 }
 
 document.addEventListener('keydown', (e) => {
+  const mod = e.ctrlKey || e.metaKey;
+  // Cmd/Ctrl+S works even while editing
+  if (mod && e.key === 's') { e.preventDefault(); document.getElementById('btn-save').click(); return; }
   if (editing) return;
   const moves = {ArrowDown:[1,0], ArrowUp:[-1,0], ArrowRight:[0,1], ArrowLeft:[0,-1]};
   if (e.key === 'Tab')     { e.preventDefault(); moveTo(selR, selC + (e.shiftKey ? -1 : 1)); return; }
@@ -518,20 +597,24 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Delete' || e.key === 'Backspace') {
     const old = data[selR][selC];
     pushHistory(selR, selC, old, '');
-    data[selR][selC]=''; getCell(selR,selC).textContent=''; formulaInput.value=''; persistData(); return;
+    data[selR][selC] = ''; getCell(selR, selC).textContent = ''; formulaInput.value = ''; persistData(); return;
   }
-  const mod = e.ctrlKey || e.metaKey;
   if (mod && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undoAction(); return; }
   if (mod && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) { e.preventDefault(); redoAction(); return; }
-  if (moves[e.key])        { e.preventDefault(); moveTo(selR + moves[e.key][0], selC + moves[e.key][1]); return; }
+  if (moves[e.key]) { e.preventDefault(); moveTo(selR + moves[e.key][0], selC + moves[e.key][1]); return; }
   if (e.key.length === 1 && !mod) {
     const old = data[selR][selC];
     pushHistory(selR, selC, old, '');
-    data[selR][selC]=''; getCell(selR,selC).textContent=''; startEdit(selR,selC);
+    data[selR][selC] = ''; getCell(selR, selC).textContent = ''; startEdit(selR, selC);
   }
 });
 
+// ── Formula bar ───────────────────────────────────────────
 formulaInput.addEventListener('focus', () => { if (!editing) startEdit(selR, selC); });
+formulaInput.addEventListener('input', () => {
+  const inp = document.getElementById('active-input');
+  if (inp) inp.value = formulaInput.value;
+});
 formulaInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') { commitEdit(); moveTo(selR+1, selC); }
   if (e.key === 'Escape') { commitEdit(); }
@@ -562,7 +645,7 @@ document.getElementById('btn-add-row').addEventListener('click', () => {
 });
 
 document.getElementById('btn-remove-row').addEventListener('click', () => {
-  if (ROWS <= 2) return; // keep at least 1 data row
+  if (ROWS <= 2) return;
   const r = selR > 0 ? selR : ROWS - 1;
   data.splice(r, 1);
   ROWS--;
@@ -576,8 +659,7 @@ document.getElementById('btn-remove-row').addEventListener('click', () => {
 // ── Save ──────────────────────────────────────────────────
 function buildSavePayload() {
   const headers = data[0].map((h, i) => h || colLetter(i));
-  const rows    = data.slice(1);
-  const structured = rows
+  const structured = data.slice(1)
     .filter(row => row.some(cell => cell !== ''))
     .map(row => {
       const obj = {};
@@ -593,79 +675,73 @@ async function saveToHandle(handle) {
   await writable.close();
 }
 
+// Save — uses existing handle; opens picker on first use
 document.getElementById('btn-save').addEventListener('click', async () => {
   if (editing) commitEdit();
-
-  const btn = document.getElementById('btn-save');
   const statusEl = document.getElementById('status-msg');
-
-  // No handle yet → open native Save As dialog (exactly like real Excel)
+  const btn = document.getElementById('btn-save');
   if (!fileHandle) {
     try {
       fileHandle = await window.showSaveFilePicker({
         suggestedName: 'prompts.json',
         types: [{ description: 'JSON file', accept: { 'application/json': ['.json'] } }]
       });
-    } catch {
-      return; // user cancelled the dialog
-    }
-    btn.textContent = '\uD83D\uDCBE Save';
+    } catch { return; }
   }
-
   btn.disabled = true;
-  statusEl.textContent = 'Saving…';
-  statusEl.className = '';
-
+  statusEl.textContent = 'Saving…'; statusEl.className = '';
   try {
     await saveToHandle(fileHandle);
-    statusEl.textContent = `✓ Saved to ${fileHandle.name}`;
-    statusEl.className = 'ok';
+    statusEl.textContent = `✓ Saved to ${fileHandle.name}`; statusEl.className = 'ok';
   } catch {
-    statusEl.textContent = '✗ Save failed';
-    statusEl.className = 'err';
-    fileHandle = null; // reset so next click re-opens the picker
-    btn.textContent = '\uD83D\uDCBE Save As';
-  } finally {
-    btn.disabled = false;
-  }
+    statusEl.textContent = '✗ Save failed'; statusEl.className = 'err'; fileHandle = null;
+  } finally { btn.disabled = false; }
+});
+
+// Save As — always opens picker
+document.getElementById('btn-save-as').addEventListener('click', async () => {
+  if (editing) commitEdit();
+  const statusEl = document.getElementById('status-msg');
+  const btn = document.getElementById('btn-save-as');
+  try {
+    fileHandle = await window.showSaveFilePicker({
+      suggestedName: fileHandle?.name || 'prompts.json',
+      types: [{ description: 'JSON file', accept: { 'application/json': ['.json'] } }]
+    });
+  } catch { return; }
+  btn.disabled = true;
+  statusEl.textContent = 'Saving…'; statusEl.className = '';
+  try {
+    await saveToHandle(fileHandle);
+    statusEl.textContent = `✓ Saved to ${fileHandle.name}`; statusEl.className = 'ok';
+  } catch {
+    statusEl.textContent = '✗ Save failed'; statusEl.className = 'err'; fileHandle = null;
+  } finally { btn.disabled = false; }
 });
 
 // ── Submit / Export ───────────────────────────────────────
 document.getElementById('btn-submit').addEventListener('click', async () => {
   if (editing) commitEdit();
-
   const btn = document.getElementById('btn-submit');
   const statusEl = document.getElementById('status-msg');
   btn.disabled = true;
-  statusEl.textContent = 'Exporting…';
-  statusEl.className = '';
-
-  // Row 0 = headers; rows 1+ = data
+  statusEl.textContent = 'Exporting…'; statusEl.className = '';
   const headers = data[0].map((h, i) => h || colLetter(i));
   const rows    = data.slice(1);
-  const filename = null;
-
   try {
     const res = await fetch('/submit', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ data: rows, headers, filename })
+      body: JSON.stringify({ data: rows, headers, filename: null })
     });
     const json = await res.json();
-
     if (json.success) {
-      statusEl.textContent = `✓ Saved ${json.rows} rows`;
-      statusEl.className = 'ok';
+      statusEl.textContent = `✓ Saved ${json.rows} rows`; statusEl.className = 'ok';
       showPanel(json);
-    } else {
-      throw new Error('Server error');
-    }
-  } catch (err) {
-    statusEl.textContent = '✗ Export failed';
-    statusEl.className = 'err';
-  } finally {
-    btn.disabled = false;
-  }
+    } else { throw new Error('Server error'); }
+  } catch {
+    statusEl.textContent = '✗ Export failed'; statusEl.className = 'err';
+  } finally { btn.disabled = false; }
 });
 
 // ── Response panel ────────────────────────────────────────
@@ -673,20 +749,44 @@ function showPanel(json) {
   const panel = document.getElementById('response-panel');
   const body  = document.getElementById('response-body');
   const fileEl = document.getElementById('response-file');
-
-  if (json.claude_response) {
-    body.textContent = json.claude_response;
-  } else if (json.claude_error) {
-    body.textContent = `[Claude bridge] ${json.claude_error}`;
-  } else {
-    body.textContent = 'No response from Claude.';
-  }
+  if (json.claude_response)    body.textContent = json.claude_response;
+  else if (json.claude_error)  body.textContent = `[Claude bridge] ${json.claude_error}`;
+  else                         body.textContent = 'No response from Claude.';
   fileEl.textContent = 'Saved to: ' + json.file;
   panel.classList.add('open');
 }
-
 document.getElementById('btn-close-panel').addEventListener('click', () => {
   document.getElementById('response-panel').classList.remove('open');
+});
+
+// ── Settings ──────────────────────────────────────────────
+const settingsPanel = document.getElementById('settings-panel');
+const toggleDark    = document.getElementById('toggle-dark');
+const toggleLow     = document.getElementById('toggle-lowlight');
+
+const savedTheme = localStorage.getItem('claudeexcell_theme');
+if (savedTheme === 'dark')     { document.body.classList.add('dark');     toggleDark.checked = true; }
+if (savedTheme === 'lowlight') { document.body.classList.add('lowlight'); toggleLow.checked  = true; }
+
+document.getElementById('btn-settings').addEventListener('click', e => {
+  e.stopPropagation();
+  settingsPanel.classList.toggle('open');
+});
+document.addEventListener('click', () => settingsPanel.classList.remove('open'));
+settingsPanel.addEventListener('click', e => e.stopPropagation());
+
+toggleDark.addEventListener('change', () => {
+  document.body.classList.toggle('dark', toggleDark.checked);
+  document.body.classList.remove('lowlight');
+  toggleLow.checked = false;
+  localStorage.setItem('claudeexcell_theme', toggleDark.checked ? 'dark' : '');
+});
+
+toggleLow.addEventListener('change', () => {
+  document.body.classList.toggle('lowlight', toggleLow.checked);
+  document.body.classList.remove('dark');
+  toggleDark.checked = false;
+  localStorage.setItem('claudeexcell_theme', toggleLow.checked ? 'lowlight' : '');
 });
 
 // ── Init ──────────────────────────────────────────────────
