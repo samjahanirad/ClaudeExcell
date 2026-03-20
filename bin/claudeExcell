@@ -1,0 +1,38 @@
+#!/usr/bin/env node
+
+const { spawn, exec } = require('child_process');
+const path = require('path');
+const http = require('http');
+
+const PROJECT_DIR = path.join(__dirname, '..');
+process.chdir(PROJECT_DIR);
+
+// Check if already running
+function isRunning(cb) {
+  http.get('http://localhost:3000', () => cb(true)).on('error', () => cb(false));
+}
+
+function openBrowser() {
+  const cmd = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open';
+  exec(`${cmd} http://localhost:3000`);
+}
+
+isRunning(running => {
+  if (running) {
+    console.log('ClaudeExcell already running → http://localhost:3000');
+    openBrowser();
+    return;
+  }
+
+  const server = spawn('node', ['server.js'], {
+    stdio: 'inherit',
+    cwd: PROJECT_DIR
+  });
+
+  server.on('error', err => {
+    console.error('Failed to start server:', err.message);
+    process.exit(1);
+  });
+
+  setTimeout(openBrowser, 1200);
+});

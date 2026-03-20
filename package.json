@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Prompt engineering tool with spreadsheet UI",
   "main": "server.js",
+  "bin": {
+    "claudeExcell": "./bin/claudeExcell"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js"
