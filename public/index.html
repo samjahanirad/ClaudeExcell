@@ -177,6 +177,41 @@ const data = Array.from({length: ROWS}, (_, r) =>
 let selR = 0, selC = 0;
 let editing = false;
 
+// ── History (undo/redo) ───────────────────────────────────
+const undoStack = [];   // [{r, c, oldVal, newVal}, ...]
+const redoStack = [];
+const MAX_HISTORY = 200;
+
+function pushHistory(r, c, oldVal, newVal) {
+  if (oldVal === newVal) return;
+  undoStack.push({r, c, oldVal, newVal});
+  if (undoStack.length > MAX_HISTORY) undoStack.shift();
+  redoStack.length = 0; // new action clears redo
+}
+
+function applyCell(r, c, val) {
+  data[r][c] = val;
+  const td = getCell(r, c);
+  if (td) td.textContent = val;
+  if (selR === r && selC === c) formulaInput.value = val;
+}
+
+function undoAction() {
+  if (!undoStack.length) return;
+  const entry = undoStack.pop();
+  redoStack.push(entry);
+  applyCell(entry.r, entry.c, entry.oldVal);
+  selectCell(entry.r, entry.c, false);
+}
+
+function redoAction() {
+  if (!redoStack.length) return;
+  const entry = redoStack.pop();
+  undoStack.push(entry);
+  applyCell(entry.r, entry.c, entry.newVal);
+  selectCell(entry.r, entry.c, false);
+}
+
 // ── DOM refs ─────────────────────────────────────────────
 const tbody       = document.getElementById('tbody');
 const cellRefEl   = document.getElementById('cell-ref');
@@ -268,10 +303,13 @@ function commitEdit() {
   if (!inp) return;
   const td = inp.closest('td');
   const r = +td.dataset.r, c = +td.dataset.c;
-  data[r][c] = inp.value;
+  const oldVal = data[r][c];
+  const newVal = inp.value;
+  pushHistory(r, c, oldVal, newVal);
+  data[r][c] = newVal;
   td.innerHTML = '';
-  td.textContent = data[r][c];
-  formulaInput.value = data[r][c];
+  td.textContent = newVal;
+  formulaInput.value = newVal;
 }
 
 function handleEditKey(e) {
@@ -296,10 +334,17 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Tab')     { e.preventDefault(); moveTo(selR, selC + (e.shiftKey ? -1 : 1)); return; }
   if (e.key === 'Enter')   { startEdit(selR, selC); return; }
   if (e.key === 'Delete' || e.key === 'Backspace') {
+    const old = data[selR][selC];
+    pushHistory(selR, selC, old, '');
     data[selR][selC]=''; getCell(selR,selC).textContent=''; formulaInput.value=''; return;
   }
+  const mod = e.ctrlKey || e.metaKey;
+  if (mod && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undoAction(); return; }
+  if (mod && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) { e.preventDefault(); redoAction(); return; }
   if (moves[e.key])        { e.preventDefault(); moveTo(selR + moves[e.key][0], selC + moves[e.key][1]); return; }
-  if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
+  if (e.key.length === 1 && !mod) {
+    const old = data[selR][selC];
+    pushHistory(selR, selC, old, '');
     data[selR][selC]=''; getCell(selR,selC).textContent=''; startEdit(selR,selC);
   }
 });
