@@ -21,19 +21,18 @@
     font-size: 13px; font-family: inherit; cursor: pointer;
   }
   #btn-submit {
-    background: #1a73e8; color: #fff; font-weight: 500;
-    box-shadow: 0 1px 3px rgba(26,115,232,.4);
+    background: #C15F3C; color: #fff; font-weight: 500;
+    box-shadow: 0 1px 3px rgba(193,95,60,.4);
   }
-  #btn-submit:hover { background: #1558b0; }
-  #btn-submit:active { background: #0f3f8a; }
-  #btn-submit:disabled { background: #a0b9e4; cursor: not-allowed; }
+  #btn-submit:hover { background: #a34e30; }
+  #btn-submit:active { background: #863f27; }
+  #btn-submit:disabled { background: #d9a892; cursor: not-allowed; }
   #app-icon { height: 28px; width: 28px; border-radius: 5px; object-fit: cover; flex-shrink: 0; }
   #btn-add-row, #btn-remove-row { background: #fff; color: #3c4043; border: 1px solid #dadce0; padding: 0 10px; }
   #btn-add-row:hover, #btn-remove-row:hover { background: #f1f3f4; }
-  #btn-save { background: #188038; color: #fff; font-weight: 500; box-shadow: 0 1px 3px rgba(24,128,56,.4); }
-  #btn-save:hover { background: #0d652d; }
-  #btn-save:active { background: #0a4d22; }
-  #btn-save:disabled { background: #8fbfa0; cursor: not-allowed; }
+  #btn-save { background: #fff; color: #3c4043; border: 1px solid #dadce0; }
+  #btn-save:hover { background: #f1f3f4; }
+  #btn-save:disabled { background: #f1f3f4; color: #aaa; cursor: not-allowed; }
   #btn-new  { background: #fff; color: #3c4043; border: 1px solid #dadce0; }
   #btn-new:hover  { background: #f1f3f4; }
   #btn-open { background: #fff; color: #3c4043; border: 1px solid #dadce0; }
@@ -190,7 +189,7 @@ const COLS       = 10;
 const STATUS_COL = COLS - 2;   // 8  → "AI Status"
 const AI_NOTE_COL = COLS - 1;  // 9  → "AI Note"
 const STATUS_OPTIONS = ['None', 'Done', 'Do Later'];
-const INIT_ROWS  = 20;
+const INIT_ROWS  = 2;
 // Widths per column index (px); main cols wide so AI cols need scrolling
 const COL_WIDTHS = { 0: 280, 1: 340, 2: 240 };
 const DEFAULT_COL_WIDTH = 160;
