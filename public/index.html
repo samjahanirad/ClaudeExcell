@@ -33,37 +33,11 @@
   #btn-save:hover { background: #0d652d; }
   #btn-save:active { background: #0a4d22; }
   #btn-save:disabled { background: #8fbfa0; cursor: not-allowed; }
-  #filename-input {
-    height: 28px; padding: 0 8px; border: 1px solid #dadce0; border-radius: 4px;
-    font-size: 13px; font-family: inherit; color: #202124; width: 200px; outline: none;
-  }
-  #filename-input:focus { border-color: #1a73e8; }
   #btn-open { background: #fff; color: #3c4043; border: 1px solid #dadce0; }
   #btn-open:hover { background: #f1f3f4; }
-  #status-msg {
-    font-size: 12px; color: #5f6368; margin-left: 4px;
-  }
+  #status-msg { font-size: 12px; color: #5f6368; margin-left: 4px; }
   #status-msg.ok  { color: #188038; }
   #status-msg.err { color: #d93025; }
-
-  /* ── Usage bar ── */
-  #usage-bar {
-    display: flex; align-items: center; gap: 10px;
-    padding: 3px 12px; background: #fff8f0;
-    border-bottom: 1px solid #fed7aa; flex-shrink: 0; height: 22px;
-    font-size: 11px; color: #92400e;
-  }
-  #usage-label { white-space: nowrap; font-weight: 500; }
-  #usage-track {
-    width: 140px; height: 7px; background: #fed7aa;
-    border-radius: 4px; overflow: hidden; flex-shrink: 0;
-  }
-  #usage-fill {
-    height: 100%; background: #f97316; border-radius: 4px;
-    width: 0%; transition: width 0.4s ease;
-  }
-  #usage-pct { white-space: nowrap; }
-  #usage-reset { white-space: nowrap; color: #b45309; margin-left: auto; }
 
   /* ── Formula bar ── */
   #formula-bar {
@@ -129,9 +103,16 @@
     font-size: 12px; font-family: inherit; cursor: pointer;
     background: transparent; appearance: none; text-align: center;
   }
-  td.cell.status-none   { background: #f8f9fa; color: #5f6368; }
-  td.cell.status-done   { background: #e6f4ea; color: #188038; font-weight: 500; }
-  td.cell.status-later  { background: #fef7e0; color: #b06000; font-weight: 500; }
+  td.cell.status-none   { background: #E2CFBC; color: #5f6368; }
+  td.cell.status-done   { background: #c8b8a8; color: #188038; font-weight: 500; }
+  td.cell.status-later  { background: #d4c0aa; color: #b06000; font-weight: 500; }
+
+  /* AI columns */
+  td.cell.ai-col { background: #E2CFBC; }
+  td.cell.ai-col input { background: #E2CFBC; }
+  th.col-header.ai-col { background: #D4BAA2; color: #5c3d1e; }
+  td.cell.header-cell.ai-col { background: #D4BAA2; color: #5c3d1e; }
+  td.cell.header-cell.ai-col input { background: #D4BAA2; color: #5c3d1e; }
 
   .col-header.highlight, .row-header.highlight { background: #e8f0fe; color: #1a73e8; }
   tr:hover .row-header { background: #f1f3f4; }
@@ -169,19 +150,10 @@
 <div id="toolbar">
   <span class="title">ClaudeExcell</span>
   <button id="btn-open">&#128194; Open</button>
-  <input id="filename-input" type="text" placeholder="filename (optional)" />
-  <button id="btn-add-row">+ Row</button>
   <button id="btn-save">&#128190; Save As</button>
-  <button id="btn-submit">&#9654; Export &amp; Send to Claude</button>
+  <button id="btn-submit">&#9654; Send to Claude</button>
+  <button id="btn-add-row">+ Row</button>
   <span id="status-msg"></span>
-</div>
-
-<!-- Usage bar -->
-<div id="usage-bar">
-  <span id="usage-label">Current session</span>
-  <div id="usage-track"><div id="usage-fill"></div></div>
-  <span id="usage-pct">—</span>
-  <span id="usage-reset"></span>
 </div>
 
 <!-- Formula bar -->
@@ -208,19 +180,25 @@
 
 <script>
 // ── Config ──────────────────────────────────────────────
-const DEFAULT_HEADERS = ['Task', 'Prompt', '@Refrens', 'AI Status', 'AI Note'];
-const STATUS_COL = 3;  // index of "AI Status" column in DEFAULT_HEADERS
+const COLS       = 10;
+const STATUS_COL = COLS - 2;   // 8  → "AI Status"
+const AI_NOTE_COL = COLS - 1;  // 9  → "AI Note"
 const STATUS_OPTIONS = ['None', 'Done', 'Do Later'];
-const INIT_ROWS = 20;
-const COLS = Math.max(DEFAULT_HEADERS.length, 8);
+const INIT_ROWS  = 20;
+// Widths per column index (px); main cols wide so AI cols need scrolling
+const COL_WIDTHS = { 0: 280, 1: 340, 2: 240 };
+const DEFAULT_COL_WIDTH = 160;
+
+// Build the initial header row
+const _hdr = Array(COLS).fill('');
+_hdr[0] = 'Task'; _hdr[1] = 'Prompt'; _hdr[2] = '@Refrens';
+_hdr[STATUS_COL] = 'AI Status'; _hdr[AI_NOTE_COL] = 'AI Note';
 
 // ── State ────────────────────────────────────────────────
 // Row 0 is the header row (editable column names)
 let ROWS = INIT_ROWS + 1;
 const data = Array.from({length: ROWS}, (_, r) =>
-  r === 0
-    ? [...DEFAULT_HEADERS, ...Array(COLS - DEFAULT_HEADERS.length).fill('')]
-    : Array(COLS).fill('')
+  r === 0 ? [..._hdr] : Array(COLS).fill('')
 );
 let selR = 0, selC = 0;
 let editing = false;
@@ -375,9 +353,11 @@ function buildGrid() {
   hrow.appendChild(corner);
   for (let c = 0; c < COLS; c++) {
     const th = document.createElement('th');
-    th.className = 'col-header';
+    th.className = 'col-header' + (c === STATUS_COL || c === AI_NOTE_COL ? ' ai-col' : '');
     th.id = 'ch' + c;
     th.textContent = colLetter(c);
+    const w = COL_WIDTHS[c] ?? DEFAULT_COL_WIDTH;
+    th.style.width = w + 'px'; th.style.minWidth = w + 'px';
     hrow.appendChild(th);
   }
   tbody.appendChild(hrow);
@@ -396,7 +376,8 @@ function appendRow(r) {
   tr.appendChild(rh);
   for (let c = 0; c < COLS; c++) {
     const td = document.createElement('td');
-    td.className = 'cell' + (r === 0 ? ' header-cell' : '');
+    const isAI = (c === STATUS_COL || c === AI_NOTE_COL);
+    td.className = 'cell' + (r === 0 ? ' header-cell' : '') + (isAI ? ' ai-col' : '');
     td.dataset.r = r; td.dataset.c = c;
     td.tabIndex = -1;
 
@@ -610,10 +591,7 @@ document.getElementById('btn-submit').addEventListener('click', async () => {
   // Row 0 = headers; rows 1+ = data
   const headers = data[0].map((h, i) => h || colLetter(i));
   const rows    = data.slice(1);
-  const filenameRaw = document.getElementById('filename-input').value.trim();
-  const filename = filenameRaw
-    ? (filenameRaw.endsWith('.json') ? filenameRaw : filenameRaw + '.json')
-    : null;
+  const filename = null;
 
   try {
     const res = await fetch('/submit', {
@@ -658,27 +636,6 @@ function showPanel(json) {
 document.getElementById('btn-close-panel').addEventListener('click', () => {
   document.getElementById('response-panel').classList.remove('open');
 });
-
-// ── Usage bar ─────────────────────────────────────────────
-async function refreshUsage() {
-  try {
-    const res = await fetch('/usage');
-    const j = await res.json();
-    const fill = document.getElementById('usage-fill');
-    const pct  = document.getElementById('usage-pct');
-    const rst  = document.getElementById('usage-reset');
-    if (j.available) {
-      fill.style.width = j.percent + '%';
-      pct.textContent  = j.percent + '% used';
-      rst.textContent  = j.reset ? 'Resets ' + j.reset : '';
-    } else {
-      pct.textContent = 'Usage data unavailable';
-      rst.textContent = '';
-    }
-  } catch {}
-}
-refreshUsage();
-setInterval(refreshUsage, 60000);
 
 // ── Init ──────────────────────────────────────────────────
 loadPersistedData();
