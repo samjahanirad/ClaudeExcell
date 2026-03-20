@@ -27,12 +27,15 @@
   #btn-submit:hover { background: #1558b0; }
   #btn-submit:active { background: #0f3f8a; }
   #btn-submit:disabled { background: #a0b9e4; cursor: not-allowed; }
-  #btn-add-row { background: #fff; color: #3c4043; border: 1px solid #dadce0; }
-  #btn-add-row:hover { background: #f1f3f4; }
+  #app-icon { height: 28px; width: 28px; border-radius: 5px; object-fit: cover; flex-shrink: 0; }
+  #btn-add-row, #btn-remove-row { background: #fff; color: #3c4043; border: 1px solid #dadce0; padding: 0 10px; }
+  #btn-add-row:hover, #btn-remove-row:hover { background: #f1f3f4; }
   #btn-save { background: #188038; color: #fff; font-weight: 500; box-shadow: 0 1px 3px rgba(24,128,56,.4); }
   #btn-save:hover { background: #0d652d; }
   #btn-save:active { background: #0a4d22; }
   #btn-save:disabled { background: #8fbfa0; cursor: not-allowed; }
+  #btn-new  { background: #fff; color: #3c4043; border: 1px solid #dadce0; }
+  #btn-new:hover  { background: #f1f3f4; }
   #btn-open { background: #fff; color: #3c4043; border: 1px solid #dadce0; }
   #btn-open:hover { background: #f1f3f4; }
   #status-msg { font-size: 12px; color: #5f6368; margin-left: 4px; }
@@ -148,11 +151,14 @@
 
 <!-- Toolbar -->
 <div id="toolbar">
+  <img id="app-icon" src="icon.png" alt="ClaudeExcell" />
   <span class="title">ClaudeExcell</span>
+  <button id="btn-new">&#128196; New</button>
   <button id="btn-open">&#128194; Open</button>
   <button id="btn-save">&#128190; Save As</button>
   <button id="btn-submit">&#9654; Send to Claude</button>
-  <button id="btn-add-row">+ Row</button>
+  <button id="btn-remove-row">&#8722; Row</button>
+  <button id="btn-add-row">&#43; Row</button>
   <span id="status-msg"></span>
 </div>
 
@@ -286,6 +292,7 @@ function loadPersistedData() {
       ROWS++;
     }
     saved.data.forEach((savedRow, r) => {
+      if (r === 0) return; // always use default _hdr, never restore headers from localStorage
       if (!data[r]) return;
       savedRow.forEach((val, c) => { if (c < COLS) data[r][c] = val ?? ''; });
     });
@@ -342,6 +349,26 @@ async function openFile() {
 }
 
 document.getElementById('btn-open').addEventListener('click', openFile);
+
+// ── New file ──────────────────────────────────────────────
+document.getElementById('btn-new').addEventListener('click', () => {
+  if (!confirm('Create a new file? Unsaved changes will be lost.')) return;
+  // Reset data to defaults
+  data.length = 0;
+  ROWS = INIT_ROWS + 1;
+  for (let r = 0; r < ROWS; r++)
+    data.push(r === 0 ? [..._hdr] : Array(COLS).fill(''));
+  // Reset save handle and localStorage
+  fileHandle = null;
+  document.getElementById('btn-save').textContent = '\uD83D\uDCBE Save As';
+  localStorage.removeItem(STORAGE_KEY);
+  // Re-render
+  tbody.innerHTML = '';
+  buildGrid();
+  renderAllCells();
+  selectCell(0, 0, false);
+  document.getElementById('status-msg').textContent = '';
+});
 
 // ── Build grid ────────────────────────────────────────────
 function buildGrid() {
@@ -511,13 +538,39 @@ formulaInput.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') { commitEdit(); }
 });
 
-// ── Add row ───────────────────────────────────────────────
+// ── Render all cells ──────────────────────────────────────
+function renderAllCells() {
+  for (let r = 0; r < ROWS; r++)
+    for (let c = 0; c < COLS; c++) {
+      if (r > 0 && c === STATUS_COL) {
+        if (!data[r][c]) data[r][c] = 'None';
+        renderStatusCell(getCell(r, c), r, data[r][c]);
+      } else {
+        getCell(r, c).textContent = data[r][c];
+      }
+    }
+}
+
+// ── Add / Remove row ──────────────────────────────────────
 document.getElementById('btn-add-row').addEventListener('click', () => {
   const row = Array(COLS).fill('');
   row[STATUS_COL] = 'None';
   data.push(row);
   ROWS++;
   appendRow(ROWS - 1);
+  renderStatusCell(getCell(ROWS - 1, STATUS_COL), ROWS - 1, 'None');
+  persistData();
+});
+
+document.getElementById('btn-remove-row').addEventListener('click', () => {
+  if (ROWS <= 2) return; // keep at least 1 data row
+  const r = selR > 0 ? selR : ROWS - 1;
+  data.splice(r, 1);
+  ROWS--;
+  tbody.innerHTML = '';
+  buildGrid();
+  renderAllCells();
+  selectCell(Math.min(r, ROWS - 1) || 1, selC, false);
   persistData();
 });
 
@@ -640,16 +693,7 @@ document.getElementById('btn-close-panel').addEventListener('click', () => {
 // ── Init ──────────────────────────────────────────────────
 loadPersistedData();
 buildGrid();
-for (let r = 0; r < ROWS; r++)
-  for (let c = 0; c < COLS; c++) {
-    if (r > 0 && c === STATUS_COL) {
-      if (!data[r][c]) data[r][c] = 'None';
-      renderStatusCell(getCell(r, c), r, data[r][c]);
-    } else {
-      getCell(r, c).textContent = data[r][c];
-    }
-  }
-
+renderAllCells();
 selectCell(0, 0, false);
 </script>
 </body>
