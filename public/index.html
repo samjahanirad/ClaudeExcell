@@ -29,6 +29,10 @@
   #btn-submit:disabled { background: #a0b9e4; cursor: not-allowed; }
   #btn-add-row { background: #fff; color: #3c4043; border: 1px solid #dadce0; }
   #btn-add-row:hover { background: #f1f3f4; }
+  #btn-save { background: #188038; color: #fff; font-weight: 500; box-shadow: 0 1px 3px rgba(24,128,56,.4); }
+  #btn-save:hover { background: #0d652d; }
+  #btn-save:active { background: #0a4d22; }
+  #btn-save:disabled { background: #8fbfa0; cursor: not-allowed; }
   #filename-input {
     height: 28px; padding: 0 8px; border: 1px solid #dadce0; border-radius: 4px;
     font-size: 13px; font-family: inherit; color: #202124; width: 200px; outline: none;
@@ -134,6 +138,7 @@
   <span class="title">Prompt Engineering Tool</span>
   <input id="filename-input" type="text" placeholder="filename (optional)" />
   <button id="btn-add-row">+ Row</button>
+  <button id="btn-save">&#128190; Save As</button>
   <button id="btn-submit">&#9654; Export &amp; Send to Claude</button>
   <span id="status-msg"></span>
 </div>
@@ -162,7 +167,7 @@
 
 <script>
 // ── Config ──────────────────────────────────────────────
-const DEFAULT_HEADERS = ['System Prompt', 'User Message', 'Expected Output', 'Notes', 'Tags'];
+const DEFAULT_HEADERS = ['@Task', '@Prompt', '@Refrens', '@Notes', '@Tags'];
 const INIT_ROWS = 20;
 const COLS = Math.max(DEFAULT_HEADERS.length, 8);
 
@@ -226,6 +231,9 @@ const colLetter = i => {
 };
 const cellName = (r, c) => colLetter(c) + (r + 1);
 const getCell  = (r, c) => tbody.querySelector(`td[data-r="${r}"][data-c="${c}"]`);
+
+// ── Save state ────────────────────────────────────────────
+let savedFilename = null; // null = no file chosen yet (Save As mode)
 
 // ── Build grid ────────────────────────────────────────────
 function buildGrid() {
@@ -360,6 +368,48 @@ document.getElementById('btn-add-row').addEventListener('click', () => {
   data.push(Array(COLS).fill(''));
   ROWS++;
   appendRow(ROWS - 1);
+});
+
+// ── Save ──────────────────────────────────────────────────
+document.getElementById('btn-save').addEventListener('click', async () => {
+  if (editing) commitEdit();
+
+  // First save → prompt for filename (Save As); after that → save to same file
+  if (!savedFilename) {
+    const input = prompt('Save as (filename without .json):', 'my-prompts');
+    if (!input || !input.trim()) return; // cancelled
+    savedFilename = input.trim().replace(/\.json$/i, '') + '.json';
+    document.getElementById('btn-save').textContent = '\uD83D\uDCBE Save';
+  }
+
+  const btn = document.getElementById('btn-save');
+  const statusEl = document.getElementById('status-msg');
+  btn.disabled = true;
+  statusEl.textContent = 'Saving…';
+  statusEl.className = '';
+
+  const headers = data[0].map((h, i) => h || colLetter(i));
+  const rows    = data.slice(1);
+
+  try {
+    const res = await fetch('/save', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ data: rows, headers, filename: savedFilename })
+    });
+    const json = await res.json();
+    if (json.success) {
+      statusEl.textContent = `✓ Saved to ${json.file.split('/').pop()}`;
+      statusEl.className = 'ok';
+    } else {
+      throw new Error('Server error');
+    }
+  } catch {
+    statusEl.textContent = '✗ Save failed';
+    statusEl.className = 'err';
+  } finally {
+    btn.disabled = false;
+  }
 });
 
 // ── Submit / Export ───────────────────────────────────────

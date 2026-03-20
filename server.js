@@ -78,6 +78,26 @@ app.post('/submit', (req, res) => {
   });
 });
 
+// Save without invoking Claude
+app.post('/save', (req, res) => {
+  const { data, headers, filename } = req.body;
+  if (!filename) return res.status(400).json({ success: false, error: 'filename required' });
+
+  const outputFile = path.join(OUTPUT_DIR, path.basename(filename));
+  const structured = data
+    .filter(row => row.some(cell => cell !== ''))
+    .map(row => {
+      const obj = {};
+      (headers || []).forEach((h, i) => { obj[h || `col_${i}`] = row[i] || ''; });
+      return obj;
+    });
+
+  const payload = { exported_at: new Date().toISOString(), rows: structured.length, data: structured };
+  fs.writeFileSync(outputFile, JSON.stringify(payload, null, 2));
+  console.log(`[save] ${structured.length} rows → ${outputFile}`);
+  res.json({ success: true, file: outputFile, rows: structured.length });
+});
+
 app.listen(PORT, () => {
   console.log(`Prompt Engineering Tool running at http://localhost:${PORT}`);
 });
