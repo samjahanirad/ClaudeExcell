@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Prompt Engineering Tool</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Google Sans', Arial, sans-serif; font-size: 13px; background: #fff; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
+
+  /* ── Toolbar ── */
+  #toolbar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 10px; background: #f8f9fa;
+    border-bottom: 1px solid #e0e0e0; flex-shrink: 0;
+  }
+  #toolbar span.title {
+    font-size: 14px; font-weight: 500; color: #202124; margin-right: 8px;
+  }
+  #toolbar button {
+    height: 28px; padding: 0 14px; border: none; border-radius: 4px;
+    font-size: 13px; font-family: inherit; cursor: pointer;
+  }
+  #btn-submit {
+    background: #1a73e8; color: #fff; font-weight: 500;
+    box-shadow: 0 1px 3px rgba(26,115,232,.4);
+  }
+  #btn-submit:hover { background: #1558b0; }
+  #btn-submit:active { background: #0f3f8a; }
+  #btn-submit:disabled { background: #a0b9e4; cursor: not-allowed; }
+  #btn-add-row { background: #fff; color: #3c4043; border: 1px solid #dadce0; }
+  #btn-add-row:hover { background: #f1f3f4; }
+  #filename-input {
+    height: 28px; padding: 0 8px; border: 1px solid #dadce0; border-radius: 4px;
+    font-size: 13px; font-family: inherit; color: #202124; width: 200px; outline: none;
+  }
+  #filename-input:focus { border-color: #1a73e8; }
+  #status-msg {
+    font-size: 12px; color: #5f6368; margin-left: 4px;
+  }
+  #status-msg.ok  { color: #188038; }
+  #status-msg.err { color: #d93025; }
+
+  /* ── Formula bar ── */
+  #formula-bar {
+    display: flex; align-items: center; border-bottom: 1px solid #e0e0e0;
+    padding: 0; height: 30px; flex-shrink: 0; background: #fff;
+  }
+  #cell-ref {
+    width: 60px; min-width: 60px; height: 100%; text-align: center;
+    border: none; border-right: 1px solid #e0e0e0; font-size: 13px;
+    font-family: inherit; color: #202124; outline: none; background: #fff;
+  }
+  #formula-icon {
+    padding: 0 8px; color: #5f6368; font-style: italic; font-size: 13px;
+    border-right: 1px solid #e0e0e0; height: 100%; display: flex; align-items: center;
+  }
+  #formula-input {
+    flex: 1; height: 100%; border: none; padding: 0 8px; font-size: 13px;
+    font-family: inherit; color: #202124; outline: none;
+  }
+
+  /* ── Grid ── */
+  #grid-container { flex: 1; overflow: auto; position: relative; }
+
+  table { border-collapse: collapse; table-layout: fixed; }
+
+  .col-header, .row-header {
+    background: #f8f9fa; color: #444; font-size: 12px; font-weight: 400;
+    text-align: center; border: 1px solid #e0e0e0;
+    position: sticky; z-index: 2; user-select: none;
+  }
+  .col-header { top: 0; height: 22px; min-width: 160px; padding: 0 4px; }
+  .row-header { left: 0; width: 46px; min-width: 46px; z-index: 3; }
+  .corner {
+    position: sticky; top: 0; left: 0; z-index: 4;
+    background: #f8f9fa; border: 1px solid #e0e0e0;
+    width: 46px; height: 22px;
+  }
+
+  td.cell {
+    border: 1px solid #e0e0e0; height: 21px; min-width: 160px;
+    padding: 0 4px; color: #202124;
+    overflow: hidden; white-space: nowrap;
+    cursor: cell; outline: none; vertical-align: middle; position: relative;
+  }
+  td.cell.selected {
+    outline: 2px solid #1a73e8; outline-offset: -2px; z-index: 1;
+  }
+  td.cell input {
+    position: absolute; inset: 0; border: none; outline: none; padding: 0 4px;
+    font-size: 13px; font-family: inherit; color: #202124; background: #fff;
+    width: 100%; height: 100%;
+  }
+  /* Header row (row 0) styling */
+  td.cell.header-cell {
+    background: #e8f0fe; font-weight: 600; color: #1a73e8;
+  }
+  td.cell.header-cell input { background: #e8f0fe; font-weight: 600; color: #1a73e8; }
+
+  .col-header.highlight, .row-header.highlight { background: #e8f0fe; color: #1a73e8; }
+  tr:hover .row-header { background: #f1f3f4; }
+
+  /* ── Response panel ── */
+  #response-panel {
+    display: none; position: fixed; right: 0; top: 0; bottom: 0;
+    width: 380px; background: #fff; border-left: 1px solid #e0e0e0;
+    flex-direction: column; z-index: 10; box-shadow: -2px 0 8px rgba(0,0,0,.1);
+  }
+  #response-panel.open { display: flex; }
+  #response-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px; border-bottom: 1px solid #e0e0e0;
+    background: #f8f9fa; flex-shrink: 0;
+  }
+  #response-header strong { font-size: 13px; color: #202124; }
+  #btn-close-panel {
+    background: none; border: none; cursor: pointer;
+    font-size: 18px; color: #5f6368; line-height: 1;
+  }
+  #response-body {
+    flex: 1; overflow-y: auto; padding: 14px;
+    font-size: 12px; line-height: 1.6; color: #202124; white-space: pre-wrap;
+  }
+  #response-file {
+    padding: 8px 14px; border-top: 1px solid #e0e0e0;
+    font-size: 11px; color: #5f6368; word-break: break-all; flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+
+<!-- Toolbar -->
+<div id="toolbar">
+  <span class="title">Prompt Engineering Tool</span>
+  <input id="filename-input" type="text" placeholder="filename (optional)" />
+  <button id="btn-add-row">+ Row</button>
+  <button id="btn-submit">&#9654; Export &amp; Send to Claude</button>
+  <span id="status-msg"></span>
+</div>
+
+<!-- Formula bar -->
+<div id="formula-bar">
+  <input id="cell-ref" value="A1" readonly />
+  <span id="formula-icon">ƒx</span>
+  <input id="formula-input" type="text" />
+</div>
+
+<!-- Grid -->
+<div id="grid-container">
+  <table id="sheet"><tbody id="tbody"></tbody></table>
+</div>
+
+<!-- Claude response panel -->
+<div id="response-panel">
+  <div id="response-header">
+    <strong>Claude Response</strong>
+    <button id="btn-close-panel">&#x2715;</button>
+  </div>
+  <div id="response-body"></div>
+  <div id="response-file"></div>
+</div>
+
+<script>
+// ── Config ──────────────────────────────────────────────
+const DEFAULT_HEADERS = ['System Prompt', 'User Message', 'Expected Output', 'Notes', 'Tags'];
+const INIT_ROWS = 20;
+const COLS = Math.max(DEFAULT_HEADERS.length, 8);
+
+// ── State ────────────────────────────────────────────────
+// Row 0 is the header row (editable column names)
+let ROWS = INIT_ROWS + 1;
+const data = Array.from({length: ROWS}, (_, r) =>
+  r === 0
+    ? [...DEFAULT_HEADERS, ...Array(COLS - DEFAULT_HEADERS.length).fill('')]
+    : Array(COLS).fill('')
+);
+let selR = 0, selC = 0;
+let editing = false;
+
+// ── DOM refs ─────────────────────────────────────────────
+const tbody       = document.getElementById('tbody');
+const cellRefEl   = document.getElementById('cell-ref');
+const formulaInput = document.getElementById('formula-input');
+
+// ── Helpers ───────────────────────────────────────────────
+const colLetter = i => {
+  let s = '';
+  let n = i;
+  do { s = String.fromCharCode(65 + (n % 26)) + s; n = Math.floor(n / 26) - 1; } while (n >= 0);
+  return s;
+};
+const cellName = (r, c) => colLetter(c) + (r + 1);
+const getCell  = (r, c) => tbody.querySelector(`td[data-r="${r}"][data-c="${c}"]`);
+
+// ── Build grid ────────────────────────────────────────────
+function buildGrid() {
+  tbody.innerHTML = '';
+  // Header row (column letters)
+  const hrow = document.createElement('tr');
+  const corner = document.createElement('th');
+  corner.className = 'corner row-header';
+  hrow.appendChild(corner);
+  for (let c = 0; c < COLS; c++) {
+    const th = document.createElement('th');
+    th.className = 'col-header';
+    th.id = 'ch' + c;
+    th.textContent = colLetter(c);
+    hrow.appendChild(th);
+  }
+  tbody.appendChild(hrow);
+
+  for (let r = 0; r < ROWS; r++) {
+    appendRow(r);
+  }
+}
+
+function appendRow(r) {
+  const tr = document.createElement('tr');
+  const rh = document.createElement('td');
+  rh.className = 'row-header';
+  rh.id = 'rh' + r;
+  rh.textContent = r + 1;
+  tr.appendChild(rh);
+  for (let c = 0; c < COLS; c++) {
+    const td = document.createElement('td');
+    td.className = 'cell' + (r === 0 ? ' header-cell' : '');
+    td.dataset.r = r; td.dataset.c = c;
+    td.tabIndex = -1;
+    td.addEventListener('mousedown', () => selectCell(r, c, false));
+    td.addEventListener('dblclick', () => startEdit(r, c));
+    tr.appendChild(td);
+  }
+  tbody.appendChild(tr);
+}
+
+// ── Cell selection ────────────────────────────────────────
+function selectCell(r, c, keepEditing) {
+  if (editing && !keepEditing) commitEdit();
+  document.querySelectorAll('.cell.selected').forEach(el => el.classList.remove('selected'));
+  document.querySelectorAll('.col-header.highlight, .row-header.highlight').forEach(el => el.classList.remove('highlight'));
+  selR = r; selC = c;
+  const td = getCell(r, c);
+  td.classList.add('selected');
+  document.getElementById('ch' + c)?.classList.add('highlight');
+  document.getElementById('rh' + r)?.classList.add('highlight');
+  cellRefEl.value = cellName(r, c);
+  formulaInput.value = data[r][c];
+  td.focus();
+}
+
+// ── Edit ──────────────────────────────────────────────────
+function startEdit(r, c) {
+  editing = true;
+  const td = getCell(r, c);
+  td.innerHTML = '';
+  const inp = document.createElement('input');
+  inp.value = data[r][c];
+  inp.id = 'active-input';
+  inp.addEventListener('keydown', handleEditKey);
+  inp.addEventListener('input', () => { formulaInput.value = inp.value; });
+  td.appendChild(inp);
+  inp.focus();
+}
+
+function commitEdit() {
+  editing = false;
+  const inp = document.getElementById('active-input');
+  if (!inp) return;
+  const td = inp.closest('td');
+  const r = +td.dataset.r, c = +td.dataset.c;
+  data[r][c] = inp.value;
+  td.innerHTML = '';
+  td.textContent = data[r][c];
+  formulaInput.value = data[r][c];
+}
+
+function handleEditKey(e) {
+  if (e.key === 'Enter')      { commitEdit(); moveTo(selR+1, selC); }
+  else if (e.key === 'Tab')   { e.preventDefault(); commitEdit(); moveTo(selR, selC + (e.shiftKey ? -1 : 1)); }
+  else if (e.key === 'Escape'){ commitEdit(); }
+  else if (e.key === 'ArrowDown') { commitEdit(); moveTo(selR+1, selC); }
+  else if (e.key === 'ArrowUp')   { commitEdit(); moveTo(selR-1, selC); }
+}
+
+// ── Navigation ────────────────────────────────────────────
+function moveTo(r, c) {
+  r = Math.max(0, Math.min(ROWS-1, r));
+  c = Math.max(0, Math.min(COLS-1, c));
+  selectCell(r, c, false);
+  getCell(r, c)?.scrollIntoView({block:'nearest', inline:'nearest'});
+}
+
+document.addEventListener('keydown', (e) => {
+  if (editing) return;
+  const moves = {ArrowDown:[1,0], ArrowUp:[-1,0], ArrowRight:[0,1], ArrowLeft:[0,-1]};
+  if (e.key === 'Tab')     { e.preventDefault(); moveTo(selR, selC + (e.shiftKey ? -1 : 1)); return; }
+  if (e.key === 'Enter')   { startEdit(selR, selC); return; }
+  if (e.key === 'Delete' || e.key === 'Backspace') {
+    data[selR][selC]=''; getCell(selR,selC).textContent=''; formulaInput.value=''; return;
+  }
+  if (moves[e.key])        { e.preventDefault(); moveTo(selR + moves[e.key][0], selC + moves[e.key][1]); return; }
+  if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
+    data[selR][selC]=''; getCell(selR,selC).textContent=''; startEdit(selR,selC);
+  }
+});
+
+formulaInput.addEventListener('focus', () => { if (!editing) startEdit(selR, selC); });
+formulaInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { commitEdit(); moveTo(selR+1, selC); }
+  if (e.key === 'Escape') { commitEdit(); }
+});
+
+// ── Add row ───────────────────────────────────────────────
+document.getElementById('btn-add-row').addEventListener('click', () => {
+  data.push(Array(COLS).fill(''));
+  ROWS++;
+  appendRow(ROWS - 1);
+});
+
+// ── Submit / Export ───────────────────────────────────────
+document.getElementById('btn-submit').addEventListener('click', async () => {
+  if (editing) commitEdit();
+
+  const btn = document.getElementById('btn-submit');
+  const statusEl = document.getElementById('status-msg');
+  btn.disabled = true;
+  statusEl.textContent = 'Exporting…';
+  statusEl.className = '';
+
+  // Row 0 = headers; rows 1+ = data
+  const headers = data[0].map((h, i) => h || colLetter(i));
+  const rows    = data.slice(1);
+  const filenameRaw = document.getElementById('filename-input').value.trim();
+  const filename = filenameRaw
+    ? (filenameRaw.endsWith('.json') ? filenameRaw : filenameRaw + '.json')
+    : null;
+
+  try {
+    const res = await fetch('/submit', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ data: rows, headers, filename })
+    });
+    const json = await res.json();
+
+    if (json.success) {
+      statusEl.textContent = `✓ Saved ${json.rows} rows`;
+      statusEl.className = 'ok';
+      showPanel(json);
+    } else {
+      throw new Error('Server error');
+    }
+  } catch (err) {
+    statusEl.textContent = '✗ Export failed';
+    statusEl.className = 'err';
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+// ── Response panel ────────────────────────────────────────
+function showPanel(json) {
+  const panel = document.getElementById('response-panel');
+  const body  = document.getElementById('response-body');
+  const fileEl = document.getElementById('response-file');
+
+  if (json.claude_response) {
+    body.textContent = json.claude_response;
+  } else if (json.claude_error) {
+    body.textContent = `[Claude bridge] ${json.claude_error}`;
+  } else {
+    body.textContent = 'No response from Claude.';
+  }
+  fileEl.textContent = 'Saved to: ' + json.file;
+  panel.classList.add('open');
+}
+
+document.getElementById('btn-close-panel').addEventListener('click', () => {
+  document.getElementById('response-panel').classList.remove('open');
+});
+
+// ── Init ──────────────────────────────────────────────────
+buildGrid();
+for (let r = 0; r < ROWS; r++)
+  for (let c = 0; c < COLS; c++)
+    getCell(r, c).textContent = data[r][c];
+
+selectCell(0, 0, false);
+</script>
+</body>
+</html>
