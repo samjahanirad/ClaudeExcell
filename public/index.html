@@ -68,7 +68,7 @@
   #toolbar {
     display: flex; align-items: center; gap: 8px;
     padding: 6px 10px; background: var(--bg-surface);
-    border-bottom: 1px solid var(--border); flex-shrink: 0; position: relative;
+    border-bottom: 1px solid var(--border); flex-shrink: 0; position: relative; z-index: 20;
   }
   #toolbar span.title {
     font-size: 14px; font-weight: 500; color: var(--text); margin-right: 8px;
@@ -108,7 +108,7 @@
     display: none; position: absolute; top: calc(100% + 4px); left: 10px;
     background: var(--bg); border: 1px solid var(--border);
     border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,.15);
-    padding: 12px 16px; z-index: 20; min-width: 190px;
+    padding: 12px 16px; z-index: 100; min-width: 190px;
   }
   #settings-panel.open { display: block; }
   #settings-panel h3 {
@@ -190,12 +190,12 @@
     font-size: 12px; font-family: inherit; cursor: pointer;
     background: transparent; appearance: none; text-align: center; color: inherit;
   }
+  td.cell.ai-col { background: var(--ai-col); }
+  td.cell.ai-col input { background: var(--ai-col); }
+
   td.cell.status-none  { background: var(--status-none-bg);  color: var(--text-muted); }
   td.cell.status-done  { background: var(--status-done-bg);  color: var(--status-done-text);  font-weight: 500; }
   td.cell.status-later { background: var(--status-later-bg); color: var(--status-later-text); font-weight: 500; }
-
-  td.cell.ai-col { background: var(--ai-col); }
-  td.cell.ai-col input { background: var(--ai-col); }
   th.col-header.ai-col { background: var(--ai-header); color: var(--ai-text); }
   td.cell.header-cell.ai-col { background: var(--ai-header); color: var(--ai-text); }
   td.cell.header-cell.ai-col input { background: var(--ai-header); color: var(--ai-text); }
@@ -231,7 +231,7 @@
   <button id="btn-open">&#128194; Open</button>
   <button id="btn-save">&#128190; Save</button>
   <button id="btn-save-as">&#8595; Save As</button>
-  <button id="btn-settings">&#9881;</button>
+  <button id="btn-settings">&#9881; Settings</button>
   <button id="btn-submit">&#9654; Send to Claude</button>
   <button id="btn-remove-row">&#8722; Row</button>
   <button id="btn-add-row">&#43; Row</button>
@@ -502,10 +502,10 @@ function renderStatusCell(td, r, value) {
   STATUS_OPTIONS.forEach(opt => {
     const o = document.createElement('option');
     o.value = opt; o.textContent = opt;
-    if (opt === value) o.selected = true;
     sel.appendChild(o);
   });
-  applyStatusClass(td, value);
+  sel.value = value in Object.fromEntries(STATUS_OPTIONS.map(o => [o,1])) ? value : 'None';
+  applyStatusClass(td, sel.value);
   sel.addEventListener('mousedown', e => e.stopPropagation());
   sel.addEventListener('change', () => {
     const oldVal = data[r][STATUS_COL];
