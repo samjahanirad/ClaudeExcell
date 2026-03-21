@@ -203,29 +203,13 @@
   .col-header.highlight, .row-header.highlight { background: #e8f0fe; color: #1a73e8; }
   tr:hover .row-header { filter: brightness(.97); }
 
-  /* ── Response panel ── */
-  #response-panel {
-    display: none; position: fixed; right: 0; top: 0; bottom: 0;
-    width: 380px; background: var(--bg); border-left: 1px solid var(--border);
-    flex-direction: column; z-index: 10; box-shadow: -2px 0 8px rgba(0,0,0,.1);
-  }
-  #response-panel.open { display: flex; }
-  #response-header {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 10px 14px; border-bottom: 1px solid var(--border);
-    background: var(--bg-surface); flex-shrink: 0;
-  }
-  #response-header strong { font-size: 13px; color: var(--text); }
-  #btn-close-panel { background: none; border: none; cursor: pointer; font-size: 18px; color: var(--text-muted); line-height: 1; }
-  #response-body { flex: 1; overflow-y: auto; padding: 14px; font-size: 12px; line-height: 1.6; color: var(--text); white-space: pre-wrap; }
-  #response-file { padding: 8px 14px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-muted); word-break: break-all; flex-shrink: 0; }
 </style>
 </head>
 <body>
 
 <!-- Toolbar -->
 <div id="toolbar">
-  <img id="app-icon" src="icon.png" alt="ClaudeExcell" />
+  <a href="http://localhost:3000" target="_blank" title="ClaudeExcell Home" style="display:flex;align-items:center;flex-shrink:0;"><img id="app-icon" src="icon.png" alt="ClaudeExcell" /></a>
   <span class="title">ClaudeExcell</span>
   <button id="btn-new">&#128196; New</button>
   <button id="btn-open">&#128194; Open</button>
@@ -269,15 +253,6 @@
   <table id="sheet"><tbody id="tbody"></tbody></table>
 </div>
 
-<!-- Claude response panel -->
-<div id="response-panel">
-  <div id="response-header">
-    <strong>Claude Response</strong>
-    <button id="btn-close-panel">&#x2715;</button>
-  </div>
-  <div id="response-body"></div>
-  <div id="response-file"></div>
-</div>
 
 <script>
 // ── Config ──────────────────────────────────────────────
@@ -484,9 +459,7 @@ function appendRow(r) {
     td.className = 'cell' + (r === 0 ? ' header-cell' : '') + (isAI ? ' ai-col' : '');
     td.dataset.r = r; td.dataset.c = c;
     td.tabIndex = -1;
-    if (r > 0 && c === STATUS_COL) {
-      renderStatusCell(td, r, data[r][c] || 'None');
-    } else {
+    if (!(r > 0 && c === STATUS_COL)) {
       td.addEventListener('mousedown', () => selectCell(r, c, false));
       td.addEventListener('dblclick', () => startEdit(r, c));
     }
@@ -496,6 +469,7 @@ function appendRow(r) {
 }
 
 function renderStatusCell(td, r, value) {
+  const validValue = STATUS_OPTIONS.includes(value) ? value : 'None';
   td.innerHTML = '';
   const sel = document.createElement('select');
   sel.className = 'status-select';
@@ -504,8 +478,6 @@ function renderStatusCell(td, r, value) {
     o.value = opt; o.textContent = opt;
     sel.appendChild(o);
   });
-  sel.value = value in Object.fromEntries(STATUS_OPTIONS.map(o => [o,1])) ? value : 'None';
-  applyStatusClass(td, sel.value);
   sel.addEventListener('mousedown', e => e.stopPropagation());
   sel.addEventListener('change', () => {
     const oldVal = data[r][STATUS_COL];
@@ -515,7 +487,9 @@ function renderStatusCell(td, r, value) {
     applyStatusClass(td, newVal);
     persistData();
   });
-  td.appendChild(sel);
+  td.appendChild(sel);         // append first — then set value
+  sel.value = validValue;      // set after in DOM so browser keeps it
+  applyStatusClass(td, validValue);
 }
 
 function applyStatusClass(td, value) {
@@ -719,13 +693,37 @@ document.getElementById('btn-save-as').addEventListener('click', async () => {
   } finally { btn.disabled = false; }
 });
 
-// ── Submit / Export ───────────────────────────────────────
+// ── Submit / Send to Claude ───────────────────────────────
+let pollInterval = null;
+
+function startPolling() {
+  if (pollInterval) clearInterval(pollInterval);
+  pollInterval = setInterval(async () => {
+    try {
+      const res  = await fetch('/task-status');
+      const json = await res.json();
+      json.rows.forEach((row, i) => {
+        const r = i + 1;
+        if (r >= ROWS) return;
+        if (row.status && row.status !== data[r][STATUS_COL]) {
+          applyCell(r, STATUS_COL, row.status);
+          persistData();
+        }
+        if (row.note !== undefined && row.note !== data[r][AI_NOTE_COL]) {
+          applyCell(r, AI_NOTE_COL, row.note);
+          persistData();
+        }
+      });
+    } catch {}
+  }, 2000);
+}
+
 document.getElementById('btn-submit').addEventListener('click', async () => {
   if (editing) commitEdit();
   const btn = document.getElementById('btn-submit');
   const statusEl = document.getElementById('status-msg');
   btn.disabled = true;
-  statusEl.textContent = 'Exporting…'; statusEl.className = '';
+  statusEl.textContent = 'Sending…'; statusEl.className = '';
   const headers = data[0].map((h, i) => h || colLetter(i));
   const rows    = data.slice(1);
   try {
@@ -736,27 +734,13 @@ document.getElementById('btn-submit').addEventListener('click', async () => {
     });
     const json = await res.json();
     if (json.success) {
-      statusEl.textContent = `✓ Saved ${json.rows} rows`; statusEl.className = 'ok';
-      showPanel(json);
+      statusEl.textContent = `✓ Sent ${json.rows} tasks — watching for updates…`;
+      statusEl.className = 'ok';
+      startPolling();
     } else { throw new Error('Server error'); }
   } catch {
-    statusEl.textContent = '✗ Export failed'; statusEl.className = 'err';
+    statusEl.textContent = '✗ Send failed'; statusEl.className = 'err';
   } finally { btn.disabled = false; }
-});
-
-// ── Response panel ────────────────────────────────────────
-function showPanel(json) {
-  const panel = document.getElementById('response-panel');
-  const body  = document.getElementById('response-body');
-  const fileEl = document.getElementById('response-file');
-  if (json.claude_response)    body.textContent = json.claude_response;
-  else if (json.claude_error)  body.textContent = `[Claude bridge] ${json.claude_error}`;
-  else                         body.textContent = 'No response from Claude.';
-  fileEl.textContent = 'Saved to: ' + json.file;
-  panel.classList.add('open');
-}
-document.getElementById('btn-close-panel').addEventListener('click', () => {
-  document.getElementById('response-panel').classList.remove('open');
 });
 
 // ── Settings ──────────────────────────────────────────────
@@ -794,6 +778,7 @@ loadPersistedData();
 buildGrid();
 renderAllCells();
 selectCell(0, 0, false);
+startPolling();
 </script>
 </body>
 </html>

@@ -1,46 +1,102 @@
 {
-  "exported_at": "2026-03-20T23:43:31.196Z",
-  "rows": 5,
+  "exported_at": "2026-03-21T00:33:22.436Z",
+  "rows": 8,
   "data": [
     {
-      "Task": "Fix formula-bar",
-      "Prompt": "there is functional bug on <input id=\"formula-input\" type=\"text\"> when I type on it , the text doesn't apply on the cell, fix this big",
+      "Task": "",
+      "Prompt": "",
       "@Refrens": "",
-      "D": "", "E": "", "F": "", "G": "", "H": "",
-      "AI Status": "Done",
-      "AI Note": "Added formulaInput 'input' event to sync typed value into active cell input"
+      "D": "",
+      "E": "",
+      "F": "",
+      "G": "",
+      "H": "",
+      "AI Status": "None",
+      "AI Note": ""
     },
     {
-      "Task": "Add save button shortcut",
-      "Prompt": "Make a save button short for mac and windows (in mac it must be command+s)",
+      "Task": "Fill this as a test",
+      "Prompt": "make it from none to done2",
       "@Refrens": "",
-      "D": "", "E": "", "F": "", "G": "", "H": "",
+      "D": "",
+      "E": "",
+      "F": "",
+      "G": "",
+      "H": "",
       "AI Status": "Done",
-      "AI Note": "Cmd+S / Ctrl+S triggers Save, handled before the editing guard"
+      "AI Note": "Test 2 passed"
     },
     {
-      "Task": "Add a setting button in tool bar",
-      "Prompt": "Add a setting button in tool bar ",
+      "Task": "",
+      "Prompt": "",
       "@Refrens": "",
-      "D": "", "E": "", "F": "", "G": "", "H": "",
-      "AI Status": "Done",
-      "AI Note": "⚙ button added to toolbar, opens a popover panel on click"
+      "D": "",
+      "E": "",
+      "F": "",
+      "G": "",
+      "H": "",
+      "AI Status": "None",
+      "AI Note": ""
     },
     {
-      "Task": "Add darkmode and low-light ",
-      "Prompt": "Add darkmode and low-light mode in setting button",
+      "Task": "",
+      "Prompt": "",
       "@Refrens": "",
-      "D": "", "E": "", "F": "", "G": "", "H": "",
-      "AI Status": "Done",
-      "AI Note": "CSS variables + body.dark / body.lowlight classes, toggles persisted in localStorage"
+      "D": "",
+      "E": "",
+      "F": "",
+      "G": "",
+      "H": "",
+      "AI Status": "None",
+      "AI Note": ""
     },
     {
-      "Task": "Add a Save button",
-      "Prompt": "Add a Save button before Save As button",
+      "Task": "",
+      "Prompt": "",
       "@Refrens": "",
-      "D": "", "E": "", "F": "", "G": "", "H": "",
-      "AI Status": "Done",
-      "AI Note": "Separate Save (reuses handle) and Save As (always opens picker) buttons added"
+      "D": "",
+      "E": "",
+      "F": "",
+      "G": "",
+      "H": "",
+      "AI Status": "None",
+      "AI Note": ""
+    },
+    {
+      "Task": "",
+      "Prompt": "",
+      "@Refrens": "",
+      "D": "",
+      "E": "",
+      "F": "",
+      "G": "",
+      "H": "",
+      "AI Status": "None",
+      "AI Note": ""
+    },
+    {
+      "Task": "",
+      "Prompt": "",
+      "@Refrens": "",
+      "D": "",
+      "E": "",
+      "F": "",
+      "G": "",
+      "H": "",
+      "AI Status": "None",
+      "AI Note": ""
+    },
+    {
+      "Task": "",
+      "Prompt": "",
+      "@Refrens": "",
+      "D": "",
+      "E": "",
+      "F": "",
+      "G": "",
+      "H": "",
+      "AI Status": "None",
+      "AI Note": ""
     }
   ]
 }

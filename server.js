@@ -1,7 +1,6 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
-const { spawn } = require('child_process');
 
 const app = express();
 const PORT = 3000;
@@ -13,68 +12,58 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Ensure output directory exists
 if (!fs.existsSync(OUTPUT_DIR)) fs.mkdirSync(OUTPUT_DIR);
 
+const PENDING_FILE = path.join(OUTPUT_DIR, 'pending-tasks.json');
+
 app.post('/submit', (req, res) => {
   const { data, headers, filename } = req.body;
 
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   const outputFile = path.join(OUTPUT_DIR, filename || `prompts-${timestamp}.json`);
 
-  // Build structured JSON: array of row objects keyed by header names
   const structured = data
     .filter(row => row.some(cell => cell !== ''))
     .map(row => {
       const obj = {};
-      (headers || []).forEach((h, i) => {
-        obj[h || `col_${i}`] = row[i] || '';
-      });
+      (headers || []).forEach((h, i) => { obj[h || `col_${i}`] = row[i] || ''; });
       return obj;
     });
 
-  const payload = {
-    exported_at: new Date().toISOString(),
-    rows: structured.length,
-    data: structured
-  };
+  const payload = { exported_at: new Date().toISOString(), rows: structured.length, data: structured };
 
   fs.writeFileSync(outputFile, JSON.stringify(payload, null, 2));
-  console.log(`[export] Saved ${structured.length} rows → ${outputFile}`);
+  fs.writeFileSync(PENDING_FILE, JSON.stringify(payload, null, 2));
+  console.log(`[submit] ${structured.length} tasks → ${outputFile}`);
+  console.log(`[submit] Pending tasks ready: ${PENDING_FILE}`);
 
-  // Bridge to Claude Code: run `claude` CLI with the exported file as context
-  const claudePrompt =
-    `I have exported a prompt engineering spreadsheet to JSON.\n` +
-    `File: ${outputFile}\n\n` +
-    `Contents:\n${JSON.stringify(payload, null, 2)}\n\n` +
-    `Please review this prompt engineering data and suggest improvements.`;
+  res.json({ success: true, file: outputFile, rows: structured.length });
+});
 
-  const claude = spawn('claude', ['--print', claudePrompt], {
-    stdio: ['ignore', 'pipe', 'pipe'],
-    timeout: 60000
-  });
+// Claude calls this after completing each task
+app.post('/update-task', (req, res) => {
+  const { rowIndex, status, note } = req.body;
+  if (!fs.existsSync(PENDING_FILE))
+    return res.status(404).json({ success: false, error: 'No pending tasks' });
 
-  let stdout = '';
-  let stderr = '';
-  claude.stdout?.on('data', d => (stdout += d));
-  claude.stderr?.on('data', d => (stderr += d));
+  const payload = JSON.parse(fs.readFileSync(PENDING_FILE, 'utf8'));
+  if (!payload.data[rowIndex])
+    return res.status(400).json({ success: false, error: 'Row not found' });
 
-  claude.on('close', code => {
-    res.json({
-      success: true,
-      file: outputFile,
-      rows: structured.length,
-      claude_response: stdout || null,
-      claude_error: code !== 0 ? stderr : null
-    });
-  });
+  payload.data[rowIndex]['AI Status'] = status || 'Done';
+  if (note !== undefined) payload.data[rowIndex]['AI Note'] = note;
+  fs.writeFileSync(PENDING_FILE, JSON.stringify(payload, null, 2));
+  console.log(`[update-task] row ${rowIndex} → ${status}`);
+  res.json({ success: true });
+});
 
-  claude.on('error', () => {
-    // Claude CLI not available — still report success for the file save
-    res.json({
-      success: true,
-      file: outputFile,
-      rows: structured.length,
-      claude_response: null,
-      claude_error: 'Claude CLI not found — file saved locally.'
-    });
+// Browser polls this every 2s
+app.get('/task-status', (req, res) => {
+  if (!fs.existsSync(PENDING_FILE)) return res.json({ rows: [] });
+  const payload = JSON.parse(fs.readFileSync(PENDING_FILE, 'utf8'));
+  res.json({
+    rows: (payload.data || []).map(row => ({
+      status: row['AI Status'] || '',
+      note:   row['AI Note']   || ''
+    }))
   });
 });
 
